@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VibeSync AI SaaS - Premium Hi-Fi Studio</title>
+    <!-- FontAwesome & Google Fonts -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="dark-theme">
+
+    <!-- Toast Notification container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Soft Particle Background -->
+    <div class="aurora-bg">
+        <div class="blob blob1"></div>
+        <div class="blob blob2"></div>
+        <div class="blob blob3"></div>
+        <div class="noise-overlay"></div>
+    </div>
+
+    <!-- Authentication Overlay Screen -->
+    <div class="auth-overlay active" id="auth-screen">
+        <div class="auth-card">
+            <div class="brand-title">VIBESYNC</div>
+            
+            <!-- Login Form -->
+            <form id="login-form" class="auth-form active">
+                <h2>LOG IN STUDIO</h2>
+                <p class="auth-subtitle">Load your private audio profile</p>
+                <div class="form-group">
+                    <label for="login-email">EMAIL ADDRESS</label>
+                    <input type="email" id="login-email" required placeholder="name@domain.com">
+                </div>
+                <div class="form-group">
+                    <label for="login-password">PASSWORD</label>
+                    <input type="password" id="login-password" required placeholder="••••••••">
+                </div>
+                <button type="submit" class="neon-btn">INITIALIZE CONNECTION</button>
+                <p class="switch-prompt">New artist? <span id="to-register">Create Studio Profile</span></p>
+            </form>
+
+            <!-- Register Form -->
+            <form id="register-form" class="auth-form">
+                <h2>CREATE PROFILE</h2>
+                <p class="auth-subtitle">Initialize your private sound library</p>
+                <div class="form-group">
+                    <label for="register-name">DISPLAY NAME</label>
+                    <input type="text" id="register-name" required placeholder="Artist / Band Name">
+                </div>
+                <div class="form-group">
+                    <label for="register-email">EMAIL ADDRESS</label>
+                    <input type="email" id="register-email" required placeholder="email@example.com">
+                </div>
+                <div class="form-group">
+                    <label for="register-password">SECURITY PASSWORD</label>
+                    <input type="password" id="register-password" required placeholder="Minimum 6 characters">
+                </div>
+                <button type="submit" class="neon-btn">CREATE PROFILE</button>
+                <p class="switch-prompt">Already registered? <span id="to-login">Log In instead</span></p>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Platform Workspace -->
+    <div class="app-container" id="app-interface" style="display: none;">
+        
+        <!-- Scandinavian Side control deck -->
+        <aside class="sidebar-shelf">
+            <div class="brand">
+                <span class="neon-text">VIBESYNC</span> <span class="accent-sub">AI</span>
+            </div>
+            
+            <!-- User block -->
+            <div class="user-block">
+                <span class="user-avatar" id="avatar-circle">U</span>
+                <div class="user-details">
+                    <span class="user-name" id="user-display-name">Artist Profile</span>
+                    <span class="user-tier">Premium Studio</span>
+                </div>
+            </div>
+
+            <!-- Dashboard sections menu -->
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active" data-view="dashboard">
+                    <i class="fa-solid fa-house-chimney"></i> Dashboard
+                </a>
+                <a href="#" class="nav-item" data-view="generator">
+                    <i class="fa-solid fa-sliders"></i> Studio Deck
+                </a>
+                <a href="#" class="nav-item" data-view="library">
+                    <i class="fa-solid fa-compact-disc"></i> Music Library
+                </a>
+                <a href="#" class="nav-item" data-view="stats">
+                    <i class="fa-solid fa-chart-line"></i> Statistics
+                </a>
+                <a href="#" class="nav-item" data-view="settings">
+                    <i class="fa-solid fa-gear"></i> Settings
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <button class="icon-btn theme-toggle" id="theme-toggle-btn" title="Toggle Studio lighting">
+                    <i class="fa-solid fa-circle-half-stroke"></i> Theme
+                </button>
+                <button class="icon-btn logout-btn" id="logout-btn" title="Exit Studio Session">
+                    <i class="fa-solid fa-power-off"></i> Exit
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Workspace Cabinet -->
+        <main class="main-deck">
+            <div class="deck-display">
+
+                <!-- 1. PERSONAL DASHBOARD VIEW -->
+                <section class="screen active" id="dashboard-view">
+                    <div class="dashboard-grid">
+                        <!-- Welcome row -->
+                        <div class="dash-welcome">
+                            <h1 id="dash-greeting">Welcome back, Artist!</h1>
+                            <p>Ready to load audio stems or start a vocal-less session?</p>
+                        </div>
+
+                        <!-- Statistics blocks -->
+                        <div class="stats-overview-row">
+                            <div class="stat-box">
+                                <i class="fa-solid fa-music"></i>
+                                <div class="stat-content">
+                                    <span class="stat-val" id="stat-created-count">0</span>
+                                    <span class="stat-lbl">Karaokes Created</span>
+                                </div>
+                            </div>
+                            <div class="stat-box">
+                                <i class="fa-solid fa-play"></i>
+                                <div class="stat-content">
+                                    <span class="stat-val" id="stat-plays-count">0</span>
+                                    <span class="stat-lbl">Songs Played</span>
+                                </div>
+                            </div>
+                            <div class="stat-box">
+                                <i class="fa-solid fa-floppy-disk"></i>
+                                <div class="stat-content">
+                                    <span class="stat-val" id="stat-storage-pct">0%</span>
+                                    <span class="stat-lbl">Storage Used</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Continue Listening & Quick Actions -->
+                        <div class="dash-split">
+                            <div class="dash-panel continue-card">
+                                <h3><i class="fa-solid fa-forward-step"></i> Continue Listening</h3>
+                                <div id="continue-listening-widget" class="continue-widget">
+                                    <div class="empty-state">No songs created yet. Go to Studio Deck!</div>
+                                </div>
+                            </div>
+
+                            <div class="dash-panel quick-actions">
+                                <h3><i class="fa-solid fa-bolt"></i> Quick Actions</h3>
+                                <div class="actions-grid">
+                                    <button class="action-btn" onclick="navigateToView('generator')">
+                                        <i class="fa-solid fa-plus"></i> Generate Karaoke
+                                    </button>
+                                    <button class="action-btn" onclick="navigateToView('library')">
+                                        <i class="fa-solid fa-magnifying-glass"></i> Search Library
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Recently Created Grid -->
+                        <div class="dash-panel recent-panel">
+                            <h3><i class="fa-solid fa-clock-rotate-left"></i> Recently Created</h3>
+                            <div id="recent-grid" class="recent-grid-view">
+                                <div class="empty-state">Your creations will appear here.</div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 2. STUDIO DECK VIEW -->
+                <section class="screen" id="generator-view">
+                    <div class="music-box-container">
+                        <div class="music-box">
+                            <div class="machine-grill"></div>
+                            
+                            <!-- LEDs and Knobs -->
+                            <div class="machine-controls">
+                                <div class="knob-group">
+                                    <div class="knob" id="knob-vol"><div class="knob-pointer"></div></div>
+                                    <span class="knob-label">VOLUME</span>
+                                </div>
+                                <div class="led-panel">
+                                    <span class="led led-power active"></span>
+                                    <span class="led led-process" id="led-process"></span>
+                                    <span class="led led-success" id="led-success"></span>
+                                </div>
+                                <div class="knob-group">
+                                    <div class="knob" id="knob-mix"><div class="knob-pointer"></div></div>
+                                    <span class="knob-label">MIX</span>
+                                </div>
+                            </div>
+
+                            <!-- Cassette Deck Insertion Zone -->
+                            <div class="cassette-deck">
+                                <div class="cassette-door">
+                                    <div class="cassette-window">
+                                        <div class="cassette-tape" id="cassette-tape">
+                                            <div class="tape-reel left-reel"></div>
+                                            <div class="tape-reel right-reel"></div>
+                                            <div class="tape-label">KARAOKE TAPE</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Input Console -->
+                            <div class="input-console">
+                                <input type="text" id="song-input" placeholder="Enter Song Name or YouTube Link...">
+                                
+                                <div class="generator-options">
+                                    <input type="text" id="song-playlist-input" placeholder="Playlist (Optional)...">
+                                    <input type="text" id="song-tags-input" placeholder="Tags (e.g. Rock, Retro)...">
+                                </div>
+
+                                <button id="generate-btn" class="neon-btn">
+                                    <i class="fa-solid fa-wand-magic-sparkles"></i> LOAD & GENERATE
+                                </button>
+                            </div>
+
+                            <!-- Processing Overlay -->
+                            <div class="processing-overlay" id="processing-overlay">
+                                <div class="gears-container">
+                                    <div class="gear gear-large"><i class="fa-solid fa-gear"></i></div>
+                                    <div class="gear gear-small"><i class="fa-solid fa-gear"></i></div>
+                                </div>
+                                <div class="progress-bar-container">
+                                    <div class="progress-fill" id="progress-fill"></div>
+                                </div>
+                                <span class="loading-text" id="loading-status">SEPARATING VOCALS...</span>
+                            </div>
+                        </div>
+
+                        <!-- Ejected CD Area -->
+                        <div class="cd-eject-tray" id="cd-eject-tray">
+                            <div class="ejected-cd" id="ejected-cd">
+                                <div class="cd-label">
+                                    <span id="ejected-cd-title">Song Title</span>
+                                    <span id="ejected-cd-artist">Artist Name</span>
+                                </div>
+                                <div class="cd-center-hole"></div>
+                            </div>
+                            <div class="click-prompt">INSERT DISC TO START PLAYER</div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 3. MUSIC LIBRARY VIEW -->
+                <section class="screen" id="library-view">
+                    <div class="library-container">
+                        <div class="lib-header">
+                            <h2>My Sound Library</h2>
+                            <div class="lib-toolbar">
+                                <div class="search-box">
+                                    <input type="text" id="library-search-input" placeholder="Filter by title, artist, playlist, tags...">
+                                    <i class="fa-solid fa-magnifying-glass"></i>
+                                </div>
+                                <button id="toggle-view-btn" class="icon-btn-toggle" title="Toggle Grid/List View">
+                                    <i class="fa-solid fa-table-cells"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Folders & Trash Navigation Tabs -->
+                        <div class="library-tabs">
+                            <button class="lib-tab active" data-libtab="all">All Tracks</button>
+                            <button class="lib-tab" data-libtab="playlists">Playlists</button>
+                            <button class="lib-tab" data-libtab="tags">Tags</button>
+                            <button class="lib-tab" data-libtab="trash"><i class="fa-solid fa-trash-can"></i> Recycle Bin</button>
+                        </div>
+
+                        <!-- Content Grid -->
+                        <div id="library-grid-container" class="library-grid">
+                            <!-- Injected by Javascript -->
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 4. ACTIVE HI-FI MUSIC PLAYER SCREEN -->
+                <section class="screen" id="player-view">
+                    <button class="back-btn" id="player-back-btn">
+                        <i class="fa-solid fa-arrow-left"></i> BACK TO LIBRARY
+                    </button>
+
+                    <div class="karaoke-grid">
+                        <!-- Left Disc Player Panel -->
+                        <div class="player-card">
+                            <div class="active-cd-container">
+                                <div class="spinning-active-cd" id="player-cd">
+                                    <div class="cd-vinyl-grooves"></div>
+                                    <div class="cd-artwork" id="player-artwork">
+                                        <div class="cd-art-label">
+                                            <span id="player-cd-title">Title</span>
+                                            <span id="player-cd-artist">Artist</span>
+                                        </div>
+                                    </div>
+                                    <div class="cd-center-hole"></div>
+                                </div>
+                            </div>
+
+                            <div class="song-meta-block">
+                                <h2 id="player-meta-title">Song Title</h2>
+                                <p id="player-meta-artist">Artist Name</p>
+                                <div class="meta-pills">
+                                    <span class="pill" id="player-meta-key">Key: -</span>
+                                    <span class="pill" id="player-meta-source">Youtube</span>
+                                    <span class="pill" id="player-meta-playlist">Default</span>
+                                </div>
+                            </div>
+
+                            <!-- Waveform -->
+                            <div class="visualizer-box">
+                                <canvas id="waveform-canvas"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Right Control Details & Lyrics -->
+                        <div class="player-details">
+                            <div class="player-tabs">
+                                <button class="tab-btn active" data-tab="lyrics">Lyrics & Sync</button>
+                                <button class="tab-btn" data-tab="mixer">Hi-Fi Mixer</button>
+                                <button class="tab-btn" data-tab="info">Bio / Info</button>
+                            </div>
+
+                            <!-- Tab 1: Lyrics Sync -->
+                            <div class="tab-content active" id="tab-lyrics">
+                                <div class="lyrics-controls">
+                                    <button class="lyrics-ctrl-btn" id="lyric-zoom-out" title="Decrease Text size"><i class="fa-solid fa-minus"></i></button>
+                                    <span class="lyrics-size-label">A-</span>
+                                    <button class="lyrics-ctrl-btn" id="lyric-zoom-in" title="Increase Text size"><i class="fa-solid fa-plus"></i></button>
+                                    <button class="lyrics-ctrl-btn" id="lyric-fullscreen" title="Fullscreen Karaoke mode"><i class="fa-solid fa-expand"></i></button>
+                                </div>
+                                <div class="lyrics-container" id="lyrics-scroll-box">
+                                    <!-- Lyrics synced dynamically -->
+                                </div>
+                            </div>
+
+                            <!-- Tab 2: Channels Mixer -->
+                            <div class="tab-content" id="tab-mixer">
+                                <div class="mix-control-card">
+                                    <h3>CONSOLE STEM CHANNELS</h3>
+                                    
+                                    <div class="audio-track-panel">
+                                        <div class="track-info">
+                                            <span>INSTRUMENTAL (KARAOKE)</span>
+                                            <span id="val-instrumental">100%</span>
+                                        </div>
+                                        <input type="range" id="vol-instrumental" min="0" max="1" step="0.05" value="1">
+                                    </div>
+
+                                    <div class="audio-track-panel">
+                                        <div class="track-info">
+                                            <span>ORIGINAL VOCALS</span>
+                                            <span id="val-vocals">100%</span>
+                                        </div>
+                                        <input type="range" id="vol-vocals" min="0" max="1" step="0.05" value="1">
+                                    </div>
+
+                                    <!-- Speed Control Slider -->
+                                    <div class="audio-track-panel">
+                                        <div class="track-info">
+                                            <span>PLAYBACK SPEED</span>
+                                            <span id="val-speed">1.0x</span>
+                                        </div>
+                                        <input type="range" id="vol-speed" min="0.5" max="2.0" step="0.1" value="1.0">
+                                    </div>
+
+                                    <!-- Loop Segment Control -->
+                                    <div class="audio-track-panel">
+                                        <div class="track-info">
+                                            <span>LOOP SECTION</span>
+                                            <span id="val-loop">OFF</span>
+                                        </div>
+                                        <button class="neon-btn btn-loop-toggle" id="btn-loop-toggle">ENABLE LOOP</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Tab 3: Bio -->
+                            <div class="tab-content" id="tab-info">
+                                <div class="artist-bio-card">
+                                    <h4 id="bio-singer-title">Biography</h4>
+                                    <p id="bio-singer-text" class="bio-text">Loading Details...</p>
+                                    <hr>
+                                    <h4 id="bio-composer-title">Composer</h4>
+                                    <p id="bio-composer-text" class="bio-text">Loading Details...</p>
+                                </div>
+                            </div>
+
+                            <!-- Bottom Transport Deck Controls -->
+                            <div class="playback-bar">
+                                <span class="time-label" id="current-time">00:00</span>
+                                <input type="range" id="playback-progress" min="0" max="100" value="0">
+                                <span class="time-label" id="total-time">00:00</span>
+                            </div>
+
+                            <div class="transport-controls">
+                                <button class="control-btn" id="btn-restart" title="Restart song"><i class="fa-solid fa-backward"></i></button>
+                                <button class="control-btn play-btn" id="btn-play" title="Play/Pause"><i class="fa-solid fa-play"></i></button>
+                                <button class="control-btn" id="btn-mute" title="Mute audio"><i class="fa-solid fa-volume-high"></i></button>
+                                <button class="control-btn" id="btn-favourite" title="Mark as Favourite"><i class="fa-regular fa-heart"></i></button>
+                                <button class="control-btn" id="btn-pin" title="Pin song to dashboard"><i class="fa-solid fa-thumbtack"></i></button>
+                                <button class="control-btn" id="btn-download" title="Download Instrumental"><i class="fa-solid fa-download"></i></button>
+                                <button class="control-btn" id="btn-delete" title="Delete song"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 5. STATISTICS VIEW -->
+                <section class="screen" id="stats-view">
+                    <div class="stats-container">
+                        <h2>Studio Playback Statistics</h2>
+                        <div class="stats-showcase">
+                            <div class="stats-card">
+                                <h3>Total Creations</h3>
+                                <span class="large-stats-val" id="stats-page-total">0</span>
+                            </div>
+                            <div class="stats-card">
+                                <h3>Most Played Track</h3>
+                                <span class="stats-song-name" id="stats-page-mostplayed">No history</span>
+                            </div>
+                        </div>
+
+                        <!-- Graphical Activity layout -->
+                        <div class="charts-card">
+                            <h3>Weekly Studio Action</h3>
+                            <div class="activity-chart">
+                                <div class="chart-bar-container">
+                                    <div class="chart-bar" style="height: 20%;" id="bar-mon"></div>
+                                    <span class="bar-lbl">Mon</span>
+                                </div>
+                                <div class="chart-bar-container">
+                                    <div class="chart-bar" style="height: 45%;" id="bar-tue"></div>
+                                    <span class="bar-lbl">Tue</span>
+                                </div>
+                                <div class="chart-bar-container">
+                                    <div class="chart-bar" style="height: 70%;" id="bar-wed"></div>
+                                    <span class="bar-lbl">Wed</span>
+                                </div>
+                                <div class="chart-bar-container">
+                                    <div class="chart-bar" style="height: 35%;" id="bar-thu"></div>
+                                    <span class="bar-lbl">Thu</span>
+                                </div>
+                                <div class="chart-bar-container">
+                                    <div class="chart-bar" style="height: 90%;" id="bar-fri"></div>
+                                    <span class="bar-lbl">Fri</span>
+                                </div>
+                                <div class="chart-bar-container">
+                                    <div class="chart-bar" style="height: 60%;" id="bar-sat"></div>
+                                    <span class="bar-lbl">Sat</span>
+                                </div>
+                                <div class="chart-bar-container">
+                                    <div class="chart-bar" style="height: 15%;" id="bar-sun"></div>
+                                    <span class="bar-lbl">Sun</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 6. SETTINGS VIEW -->
+                <section class="screen" id="settings-view">
+                    <div class="settings-container">
+                        <h2>Studio Customizations</h2>
+                        
+                        <div class="settings-group-panel">
+                            <h3>General Options</h3>
+                            <div class="setting-item">
+                                <span>Default Sizing for synced lyrics</span>
+                                <select id="settings-lyric-size">
+                                    <option value="16px">Normal (16px)</option>
+                                    <option value="20px">Large (20px)</option>
+                                    <option value="26px">Extra Large (26px)</option>
+                                </select>
+                            </div>
+                            <div class="setting-item">
+                                <span>Studio Animation Speed</span>
+                                <select id="settings-anim-speed">
+                                    <option value="normal">Analog Smooth</option>
+                                    <option value="fast">Instant Response</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="settings-group-panel">
+                            <h3>Studio Account Actions</h3>
+                            <p class="settings-desc">Manage profiles or clear cached sessions.</p>
+                            <button class="action-btn purge-profile-btn" onclick="clearSession()">
+                                LOG OUT & DISCONNECT PROFILE
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

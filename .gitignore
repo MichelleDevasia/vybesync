@@ -1,0 +1,25 @@
+# Virtual Environment
+venv/
+.venv/
+env/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Local Data and Generated Audio/Metadata
+downloads/
+karaoke_output/
+library/*.mp3
+library/*.jpg
+library/*.jpeg
+library/*.png
+library/*.webp
+library/*.txt
+library/*.info
+
+# Environment variables
+.env
+
+# Streamlit config/secrets (if created locally)
+.streamlit/

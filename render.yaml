@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: vibesync-ai-studio
+    env: python
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: python app.py
+    envVars:
+      - key: GENIUS_TOKEN
+        sync: false
