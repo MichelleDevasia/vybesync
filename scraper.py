@@ -33,7 +33,7 @@ def download_audio(song_name):
         },
         'extractor_args': {
             'youtube': {
-                'player_client': ['mweb', 'ios', 'android', 'web_creator']
+                'player_client': ['android', 'web']
             }
         }
     }

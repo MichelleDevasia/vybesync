@@ -22,6 +22,7 @@ imageio-ffmpeg
 
 # Web Scraping & Integrations
 yt-dlp
+dukpy==0.6.0
 requests==2.33.1
 lyricsgenius==3.7.3
 wikipedia==1.4.0
