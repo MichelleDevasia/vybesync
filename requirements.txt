@@ -22,6 +22,8 @@ ffmpeg-python==0.2.0
 yt-dlp==2026.3.17
 requests==2.33.1
 lyricsgenius==3.7.3
+wikipedia==1.4.0
+musicbrainzngs==0.7.1
 
 # Fallback speech-to-text transcription
 openai-whisper==20250625
