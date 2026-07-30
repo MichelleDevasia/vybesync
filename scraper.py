@@ -41,9 +41,15 @@ def download_audio(song_name):
             }
         # ----------------------------
 
-        video_info = info['entries'][0] if 'entries' in info else info
-        video_info = info['entries'][0] if 'entries' in info else info
-        
+        entries = info.get('entries')
+        if entries:
+            video_info = entries[0]
+        else:
+            video_info = info
+
+        if not video_info:
+            raise Exception(f"No audio tracks found on YouTube for '{song_name}'. Please try another search term or full title.")
+
         # Get the initial path yt-dlp created
         raw_path = ydl.prepare_filename(video_info)
         # yt-dlp might use different extensions before converting to mp3
