@@ -20,19 +20,23 @@ def download_audio(song_name):
             'preferredcodec': 'mp3',
             'preferredquality': '192',
         }],
-        'ignoreerrors': True,           # Don't crash if one video is blocked
+        'ignoreerrors': True,
         'no_warnings': True,
-        'nocheckcertificate': True,     # Helps with some network blocks
-        'default_search': 'ytsearch3',
+        'nocheckcertificate': True,
         'writethumbnail': True,
         'outtmpl': f'{output_dir}/%(title)s.%(ext)s',
-        'default_search': 'ytsearch1',
         'noplaylist': True,
-        'quiet': True
+        'quiet': True,
+        'http_headers': {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+            'Accept-Language': 'en-US,en;q=0.9',
+        }
     }
 
+    search_target = song_name if song_name.startswith(('http://', 'https://')) else f"ytsearch5:{song_name}"
+
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(song_name, download=True)
+        info = ydl.extract_info(search_target, download=True)
         if info is None:
             return {
                 "mp3": None,
@@ -41,9 +45,11 @@ def download_audio(song_name):
             }
         # ----------------------------
 
-        entries = info.get('entries')
-        if entries:
-            video_info = entries[0]
+        video_info = None
+        if 'entries' in info and info['entries']:
+            valid_entries = [e for e in info['entries'] if e is not None]
+            if valid_entries:
+                video_info = valid_entries[0]
         else:
             video_info = info
 
