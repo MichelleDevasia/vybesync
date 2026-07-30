@@ -37,13 +37,13 @@ def download_audio(song_name):
             'preferredcodec': 'mp3',
             'preferredquality': '192',
         }],
-        'ignoreerrors': True,
+        'ignoreerrors': False,
         'no_warnings': True,
         'nocheckcertificate': True,
         'writethumbnail': True,
         'outtmpl': f'{output_dir}/%(title)s.%(ext)s',
         'noplaylist': True,
-        'quiet': True,
+        'quiet': False,
         'http_headers': {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
             'Accept-Language': 'en-US,en;q=0.9',
@@ -56,47 +56,47 @@ def download_audio(song_name):
     }
 
     search_target = resolve_youtube_url(song_name)
+    print(f"[*] Downloading audio target: {search_target}")
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(search_target, download=True)
-        if info is None:
-            return {
-                "mp3": None,
-                "title": "Error",
-                "artist": "Unknown"
-            }
-        # ----------------------------
+        try:
+            info = ydl.extract_info(search_target, download=True)
+        except Exception as err:
+            print("[!] yt-dlp error:", err)
+            info = None
 
-        video_info = None
+        if info is None:
+            raise Exception(f"Could not download audio for query '{song_name}'. Please try entering the direct YouTube link.")
+
+        # Handle search results vs direct video info
         if 'entries' in info and info['entries']:
             valid_entries = [e for e in info['entries'] if e is not None]
-            if valid_entries:
-                video_info = valid_entries[0]
+            video_info = valid_entries[0] if valid_entries else info
         else:
             video_info = info
 
         if not video_info:
-            raise Exception(f"No audio tracks found on YouTube for '{song_name}'. Please try another search term or full title.")
+            raise Exception(f"No valid video found for '{song_name}'.")
 
-        # Get the initial path yt-dlp created
         raw_path = ydl.prepare_filename(video_info)
-        # yt-dlp might use different extensions before converting to mp3
-        for ext in ['.webm', '.m4a', '.mp4']:
-            raw_path = raw_path.replace(ext, '.mp3')
-            
-        # Create the NEW clean name
+        base_path = os.path.splitext(raw_path)[0]
+        actual_mp3_path = base_path + ".mp3"
+
         simple_name = clean_title(video_info.get('title', 'Song'))
         new_mp3_path = os.path.join(output_dir, f"{simple_name}.mp3")
         new_jpg_path = os.path.join(output_dir, f"{simple_name}.jpg")
 
-        # Rename the MP3
-        if os.path.exists(raw_path):
+        # Find and move the created MP3 file
+        if os.path.exists(actual_mp3_path):
+            os.replace(actual_mp3_path, new_mp3_path)
+        elif os.path.exists(raw_path):
             os.replace(raw_path, new_mp3_path)
-            
-        # Rename the Poster/Thumbnail
-        raw_poster = raw_path.replace(".mp3", ".jpg")
-        if os.path.exists(raw_poster):
-            os.replace(raw_poster, new_jpg_path)
+        else:
+            # Fallback: find any file in library matching the base name
+            for f in os.listdir(output_dir):
+                if f.endswith('.mp3') and not f.startswith('karaoke_'):
+                    new_mp3_path = os.path.join(output_dir, f)
+                    break
 
         return {
             "mp3": new_mp3_path,
