@@ -37,7 +37,7 @@ def download_audio(song_name):
         ffmpeg_bin = None
 
     ydl_opts = {
-        'format': 'bestaudio/best',
+        'format': 'ba/b/bestaudio/best',
         'postprocessors': [{
             'key': 'FFmpegExtractAudio',
             'preferredcodec': 'mp3',
@@ -62,7 +62,7 @@ def download_audio(song_name):
     }
 
     if ffmpeg_bin:
-        ydl_opts['ffmpeg_location'] = ffmpeg_bin
+        ydl_opts['ffmpeg_location'] = os.path.dirname(ffmpeg_bin)
 
     search_target = resolve_youtube_url(song_name)
     print(f"[*] Downloading audio target: {search_target} using FFmpeg at {ffmpeg_bin}")
@@ -72,10 +72,10 @@ def download_audio(song_name):
             info = ydl.extract_info(search_target, download=True)
         except Exception as err:
             print("[!] yt-dlp error:", err)
-            info = None
+            raise Exception(f"YouTube extraction error: {str(err)}")
 
         if info is None:
-            raise Exception(f"Could not download audio for query '{song_name}'. Please try entering the direct YouTube link.")
+            raise Exception(f"Could not download audio for query '{song_name}'. Please verify the video is public.")
 
         # Handle search results vs direct video info
         if 'entries' in info and info['entries']:
