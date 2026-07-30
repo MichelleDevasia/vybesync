@@ -30,6 +30,12 @@ def download_audio(song_name):
     output_dir = 'library'
     if not os.path.exists(output_dir): os.makedirs(output_dir)
 
+    try:
+        import imageio_ffmpeg
+        ffmpeg_bin = imageio_ffmpeg.get_ffmpeg_exe()
+    except Exception:
+        ffmpeg_bin = None
+
     ydl_opts = {
         'format': 'bestaudio/best',
         'postprocessors': [{
@@ -40,7 +46,7 @@ def download_audio(song_name):
         'ignoreerrors': False,
         'no_warnings': True,
         'nocheckcertificate': True,
-        'writethumbnail': True,
+        'writethumbnail': False,
         'outtmpl': f'{output_dir}/%(title)s.%(ext)s',
         'noplaylist': True,
         'quiet': False,
@@ -55,8 +61,11 @@ def download_audio(song_name):
         }
     }
 
+    if ffmpeg_bin:
+        ydl_opts['ffmpeg_location'] = ffmpeg_bin
+
     search_target = resolve_youtube_url(song_name)
-    print(f"[*] Downloading audio target: {search_target}")
+    print(f"[*] Downloading audio target: {search_target} using FFmpeg at {ffmpeg_bin}")
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         try:
