@@ -1,6 +1,8 @@
 import yt_dlp
 import os
 import re
+import urllib.parse
+import requests
 
 def clean_title(text):
     # Removes everything after | - ( [ and special characters like '歌'
@@ -8,6 +10,21 @@ def clean_title(text):
     # Remove any symbols, keeping only letters, numbers, and spaces
     clean = re.sub(r'[^\w\s]', '', text).strip()
     return clean if clean else "Unknown_Song"
+
+def resolve_youtube_url(query):
+    if query.startswith(('http://', 'https://')):
+        return query
+    try:
+        query_encoded = urllib.parse.quote(query)
+        url = f"https://www.youtube.com/results?search_query={query_encoded}"
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36'}
+        resp = requests.get(url, headers=headers, timeout=10)
+        video_ids = re.findall(r"watch\?v=(\w{11})", resp.text)
+        if video_ids:
+            return f"https://www.youtube.com/watch?v={video_ids[0]}"
+    except Exception as e:
+        print("URL resolution fallback error:", e)
+    return f"ytsearch5:{query}"
 
 def download_audio(song_name):
     output_dir = 'library'
@@ -38,7 +55,7 @@ def download_audio(song_name):
         }
     }
 
-    search_target = song_name if song_name.startswith(('http://', 'https://')) else f"ytsearch5:{song_name}"
+    search_target = resolve_youtube_url(song_name)
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(search_target, download=True)
