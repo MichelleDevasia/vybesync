@@ -26,6 +26,30 @@ def resolve_youtube_url(query):
         print("URL resolution fallback error:", e)
     return f"ytsearch5:{query}"
 
+def download_audio_pytubefix(song_name, output_dir='library'):
+    from pytubefix import YouTube
+    direct_url = resolve_youtube_url(song_name)
+    if not direct_url.startswith(('http://', 'https://')):
+        raise Exception(f"Could not resolve YouTube URL for '{song_name}'")
+    
+    print(f"[*] Pytubefix attempting download for: {direct_url}")
+    yt = YouTube(direct_url)
+    simple_name = clean_title(yt.title)
+    ys = yt.streams.get_audio_only()
+    
+    target_mp3 = os.path.join(output_dir, f"{simple_name}.mp3")
+    temp_filename = f"{simple_name}_raw"
+    downloaded_file = ys.download(output_path=output_dir, filename=temp_filename)
+    
+    if os.path.exists(downloaded_file):
+        os.replace(downloaded_file, target_mp3)
+        
+    return {
+        "mp3": target_mp3,
+        "title": simple_name,
+        "artist": getattr(yt, 'author', 'Unknown').replace("- Topic", "").strip()
+    }
+
 def download_audio(song_name):
     output_dir = 'library'
     if not os.path.exists(output_dir): os.makedirs(output_dir)
@@ -71,11 +95,15 @@ def download_audio(song_name):
         try:
             info = ydl.extract_info(search_target, download=True)
         except Exception as err:
-            print("[!] yt-dlp error:", err)
-            raise Exception(f"YouTube extraction error: {str(err)}")
+            print("[!] yt-dlp error, attempting pytubefix fallback:", err)
+            try:
+                return download_audio_pytubefix(song_name, output_dir)
+            except Exception as pyerr:
+                print("[!] pytubefix error:", pyerr)
+                raise Exception(f"Audio download failed. Primary error: {str(err)}")
 
         if info is None:
-            raise Exception(f"Could not download audio for query '{song_name}'. Please verify the video is public.")
+            return download_audio_pytubefix(song_name, output_dir)
 
         # Handle search results vs direct video info
         if 'entries' in info and info['entries']:
@@ -85,7 +113,7 @@ def download_audio(song_name):
             video_info = info
 
         if not video_info:
-            raise Exception(f"No valid video found for '{song_name}'.")
+            return download_audio_pytubefix(song_name, output_dir)
 
         raw_path = ydl.prepare_filename(video_info)
         base_path = os.path.splitext(raw_path)[0]
