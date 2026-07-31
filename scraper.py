@@ -32,8 +32,8 @@ def download_audio_pytubefix(song_name, output_dir='library'):
     if not direct_url.startswith(('http://', 'https://')):
         raise Exception(f"Could not resolve YouTube URL for '{song_name}'")
     
-    print(f"[*] Pytubefix attempting download for: {direct_url}")
-    yt = YouTube(direct_url)
+    print(f"[*] Pytubefix attempting MWEB download for: {direct_url}")
+    yt = YouTube(direct_url, client='MWEB')
     simple_name = clean_title(yt.title)
     ys = yt.streams.get_audio_only()
     
