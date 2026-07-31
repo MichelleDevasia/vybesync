@@ -129,11 +129,17 @@ def download_audio(song_name):
         elif os.path.exists(raw_path):
             os.replace(raw_path, new_mp3_path)
         else:
-            # Fallback: find any file in library matching the base name
+            # Check if any new MP3 file was created in library
+            found_mp3 = None
             for f in os.listdir(output_dir):
                 if f.endswith('.mp3') and not f.startswith('karaoke_'):
-                    new_mp3_path = os.path.join(output_dir, f)
+                    found_mp3 = os.path.join(output_dir, f)
                     break
+            if found_mp3 and os.path.exists(found_mp3):
+                new_mp3_path = found_mp3
+            else:
+                print("[!] yt-dlp did not generate audio file on disk. Invoking pytubefix MWEB fallback...")
+                return download_audio_pytubefix(song_name, output_dir)
 
         return {
             "mp3": new_mp3_path,
