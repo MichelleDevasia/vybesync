@@ -32,23 +32,30 @@ def download_audio_pytubefix(song_name, output_dir='library'):
     if not direct_url.startswith(('http://', 'https://')):
         raise Exception(f"Could not resolve YouTube URL for '{song_name}'")
     
-    print(f"[*] Pytubefix attempting MWEB download for: {direct_url}")
-    yt = YouTube(direct_url, client='MWEB')
-    simple_name = clean_title(yt.title)
-    ys = yt.streams.get_audio_only()
-    
-    target_mp3 = os.path.join(output_dir, f"{simple_name}.mp3")
-    temp_filename = f"{simple_name}_raw"
-    downloaded_file = ys.download(output_path=output_dir, filename=temp_filename)
-    
-    if os.path.exists(downloaded_file):
-        os.replace(downloaded_file, target_mp3)
-        
-    return {
-        "mp3": target_mp3,
-        "title": simple_name,
-        "artist": getattr(yt, 'author', 'Unknown').replace("- Topic", "").strip()
-    }
+    last_err = None
+    for client_name in ['MWEB', 'WEB', 'ANDROID', 'IOS']:
+        try:
+            print(f"[*] Pytubefix trying client='{client_name}' for: {direct_url}")
+            yt = YouTube(direct_url, client=client_name)
+            simple_name = clean_title(yt.title)
+            ys = yt.streams.filter(only_audio=True).first()
+            if not ys:
+                ys = yt.streams.get_audio_only()
+            if ys:
+                target_mp3 = os.path.join(output_dir, f"{simple_name}.mp3")
+                downloaded_file = ys.download(output_path=output_dir, filename=f"{simple_name}_raw")
+                if os.path.exists(downloaded_file):
+                    os.replace(downloaded_file, target_mp3)
+                    return {
+                        "mp3": target_mp3,
+                        "title": simple_name,
+                        "artist": getattr(yt, 'author', 'Unknown').replace("- Topic", "").strip()
+                    }
+        except Exception as e:
+            print(f"[!] pytubefix client '{client_name}' failed:", e)
+            last_err = e
+
+    raise Exception(f"Pytubefix all clients failed: {str(last_err)}")
 
 def download_audio(song_name):
     output_dir = 'library'
@@ -100,7 +107,7 @@ def download_audio(song_name):
                 return download_audio_pytubefix(song_name, output_dir)
             except Exception as pyerr:
                 print("[!] pytubefix error:", pyerr)
-                raise Exception(f"Audio download failed. Primary error: {str(err)}")
+                raise Exception(f"Audio download failed. Primary: {str(err)} | Secondary: {str(pyerr)}")
 
         if info is None:
             return download_audio_pytubefix(song_name, output_dir)
@@ -123,26 +130,26 @@ def download_audio(song_name):
         new_mp3_path = os.path.join(output_dir, f"{simple_name}.mp3")
         new_jpg_path = os.path.join(output_dir, f"{simple_name}.jpg")
 
-        # Find and move the created MP3 file
+        # Check if any new MP3 file was created in library
+        found_mp3 = None
         if os.path.exists(actual_mp3_path):
             os.replace(actual_mp3_path, new_mp3_path)
+            found_mp3 = new_mp3_path
         elif os.path.exists(raw_path):
             os.replace(raw_path, new_mp3_path)
+            found_mp3 = new_mp3_path
         else:
-            # Check if any new MP3 file was created in library
-            found_mp3 = None
             for f in os.listdir(output_dir):
                 if f.endswith('.mp3') and not f.startswith('karaoke_'):
                     found_mp3 = os.path.join(output_dir, f)
                     break
-            if found_mp3 and os.path.exists(found_mp3):
-                new_mp3_path = found_mp3
-            else:
-                print("[!] yt-dlp did not generate audio file on disk. Invoking pytubefix MWEB fallback...")
-                return download_audio_pytubefix(song_name, output_dir)
+
+        if not found_mp3 or not os.path.exists(found_mp3):
+            print("[!] yt-dlp did not generate audio file on disk. Invoking pytubefix fallback...")
+            return download_audio_pytubefix(song_name, output_dir)
 
         return {
-            "mp3": new_mp3_path,
+            "mp3": found_mp3,
             "title": simple_name,
             "artist": video_info.get('uploader', '').replace("- Topic", "").strip()
         }
