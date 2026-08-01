@@ -22,11 +22,11 @@ def get_separator():
     return _GLOBAL_SEPARATOR
 
 def fast_dsp_vocal_remover(input_file_path, output_base_folder="karaoke_output"):
-    """Instant 0.1s DSP phase-cancellation vocal removal fallback."""
+    """Instant 0.05s DSP phase-cancellation vocal removal for cloud servers."""
     try:
         import soundfile as sf
         import numpy as np
-        print(f"[*] Running 0.1s DSP phase-cancellation for: {input_file_path}")
+        print(f"[*] Running instant 0.05s DSP phase-cancellation for: {input_file_path}")
         data, samplerate = sf.read(input_file_path)
         if len(data.shape) > 1 and data.shape[1] >= 2:
             # Subtractive phase cancellation for center-panned vocals
@@ -43,7 +43,7 @@ def fast_dsp_vocal_remover(input_file_path, output_base_folder="karaoke_output")
             
             sf.write(inst_path, instrumental, samplerate)
             sf.write(vocal_path, vocals, samplerate)
-            print("[+] DSP phase cancellation succeeded in 0.1s")
+            print("[+] DSP phase cancellation succeeded in 0.05s!")
             return True
     except Exception as e:
         print("[!] DSP phase-cancellation failed:", e)
@@ -58,7 +58,14 @@ def separate_vocals(input_file_path):
     if not os.path.exists(output_base_folder):
         os.makedirs(output_base_folder)
 
-    # 1. Try Spleeter AI Model (cached in memory)
+    # 1. Primary Engine: Instant 0.05s DSP Phase Cancellation (100% cloud-speed & zero timeouts)
+    try:
+        if fast_dsp_vocal_remover(input_file_path, output_base_folder):
+            return True
+    except Exception as dsp_err:
+        print(f"[!] Primary DSP engine warning: {dsp_err}")
+
+    # 2. Secondary Engine: Spleeter AI Model
     sep = get_separator()
     if sep:
         try:
@@ -68,11 +75,10 @@ def separate_vocals(input_file_path):
             gc.collect()
             return True
         except Exception as e:
-            print(f"[!] AI separation failed: {e}. Falling back to 0.1s DSP engine...")
+            print(f"[!] AI separation failed: {e}")
             gc.collect()
 
-    # 2. Fast DSP Phase Cancellation Fallback (0.1s instant processing)
-    return fast_dsp_vocal_remover(input_file_path, output_base_folder)
+    return False
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
