@@ -22,14 +22,14 @@ def separate_vocals(input_file_path):
         print(f"Error: Spleeter library is not installed or import failed. Details: {ie}")
         return False
 
-    separator = Separator('spleeter:2stems')
+    separator = Separator('spleeter:2stems', multiprocess=False)
     output_base_folder = "karaoke_output"
     
     if not os.path.exists(output_base_folder):
         os.makedirs(output_base_folder)
 
     try:
-        separator.separate_to_file(input_file_path, output_base_folder)
+        separator.separate_to_file(input_file_path, output_base_folder, duration=90)
         print("Success: Separation completed successfully.")
         del separator
         gc.collect()
