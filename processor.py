@@ -1,5 +1,11 @@
 import os
 import sys
+import gc
+
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+os.environ['OMP_NUM_THREADS'] = '1'
+os.environ['TF_NUM_INTRAOP_THREADS'] = '1'
+os.environ['TF_NUM_INTEROP_THREADS'] = '1'
 
 def separate_vocals(input_file_path):
     # Validate input file existence
@@ -25,9 +31,12 @@ def separate_vocals(input_file_path):
     try:
         separator.separate_to_file(input_file_path, output_base_folder)
         print("Success: Separation completed successfully.")
+        del separator
+        gc.collect()
         return True
     except Exception as e:
         print(f"Error: Separation failed due to: {e}")
+        gc.collect()
         return False
 
 if __name__ == "__main__":
