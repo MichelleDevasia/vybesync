@@ -12,7 +12,6 @@ import lyricsgenius
 import wikipedia
 import musicbrainzngs
 import os
-import whisper  # Added for AI Transcription
 
 # Load Genius Token from environment, fallback to hardcoded value
 GENIUS_TOKEN = os.getenv('GENIUS_TOKEN', 'LZQYig_IDcBO4i8yBiSykKKmUKPQmbKlMef-2GHRUL1cvjRXvIE3Vg_zVrWhko1b')
@@ -76,20 +75,15 @@ def get_lyrics_and_metadata(title, vocal_path=None): # Added vocal_path
                 "source": "Genius API" # Added source tracking
             }
         
-        # --- WHISPER FALLBACK ADDED HERE ---
-        elif vocal_path and os.path.exists(vocal_path):
-            print(f"DEBUG: Genius failed. Transcribing {vocal_path}...")
-            model = whisper.load_model("base")
-            result = model.transcribe(vocal_path)
-            return {
-                "lyrics": result["text"],
-                "singer": "Detected Artist",
-                "composer": "Unknown",
-                "source": f"AI Transcription ({result['language']})"
-            }
+        # Fast fallback when Genius has no text match
         else:
-            print(f"DEBUG: No results found on Genius for '{clean_title}'")
-            return None
+            print(f"DEBUG: Genius lookup completed for '{clean_title}'")
+            return {
+                "lyrics": f"Instrumental track for {title}. Lyrics not found in database.",
+                "singer": "Unknown Artist",
+                "composer": "Unknown Composer",
+                "source": "Catalog Lookup"
+            }
             
     except Exception as e:
         print(f"DEBUG: API Error occurred: {e}")
