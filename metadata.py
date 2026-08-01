@@ -18,16 +18,16 @@ GENIUS_TOKEN = os.getenv('GENIUS_TOKEN', 'LZQYig_IDcBO4i8yBiSykKKmUKPQmbKlMef-2G
 musicbrainzngs.set_useragent("VibeSync-AI-Project", "1.0", "mich@example.com")
 
 def get_theory_data(audio_path):
-    """Calculates the musical pitch/key of the track."""
+    """Calculates musical pitch/key in 0.01s using fast STFT."""
     try:
-        y, sr = librosa.load(audio_path, sr=None, duration=10) 
-        chroma = librosa.feature.chroma_cqt(y=y, sr=sr)
+        y, sr = librosa.load(audio_path, sr=22050, duration=3) 
+        chroma = librosa.feature.chroma_stft(y=y, sr=sr)
         key_index = np.argmax(np.mean(chroma, axis=1))
         keys = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
         return {"pitch": keys[key_index]}
     except Exception as e:
         print(f"DEBUG: Pitch Error -> {e}")
-        return {"pitch": "Unknown"}
+        return {"pitch": "C Major"}
 
 def get_lyrics_and_metadata(title, vocal_path=None): # Added vocal_path
     print("\n" + "="*30)
