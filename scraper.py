@@ -33,7 +33,7 @@ def download_audio_pytubefix(song_name, output_dir='library'):
         raise Exception(f"Could not resolve YouTube URL for '{song_name}'")
     
     last_err = None
-    for client_name in ['MWEB', 'WEB', 'ANDROID', 'IOS']:
+    for client_name in ['MWEB', 'ANDROID', 'WEB', 'IOS']:
         try:
             print(f"[*] Pytubefix trying client='{client_name}' for: {direct_url}")
             yt = YouTube(direct_url, client=client_name)
@@ -55,12 +55,9 @@ def download_audio_pytubefix(song_name, output_dir='library'):
             print(f"[!] pytubefix client '{client_name}' failed:", e)
             last_err = e
 
-    raise Exception(f"Pytubefix all clients failed: {str(last_err)}")
+    raise Exception(f"Pytubefix clients failed: {str(last_err)}")
 
-def download_audio(song_name):
-    output_dir = 'library'
-    if not os.path.exists(output_dir): os.makedirs(output_dir)
-
+def download_audio_ytdlp(song_name, output_dir='library'):
     try:
         import imageio_ffmpeg
         ffmpeg_bin = imageio_ffmpeg.get_ffmpeg_exe()
@@ -96,23 +93,13 @@ def download_audio(song_name):
         ydl_opts['ffmpeg_location'] = os.path.dirname(ffmpeg_bin)
 
     search_target = resolve_youtube_url(song_name)
-    print(f"[*] Downloading audio target: {search_target} using FFmpeg at {ffmpeg_bin}")
+    print(f"[*] yt-dlp downloading target: {search_target}")
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        try:
-            info = ydl.extract_info(search_target, download=True)
-        except Exception as err:
-            print("[!] yt-dlp error, attempting pytubefix fallback:", err)
-            try:
-                return download_audio_pytubefix(song_name, output_dir)
-            except Exception as pyerr:
-                print("[!] pytubefix error:", pyerr)
-                raise Exception(f"Audio download failed. Primary: {str(err)} | Secondary: {str(pyerr)}")
-
+        info = ydl.extract_info(search_target, download=True)
         if info is None:
-            return download_audio_pytubefix(song_name, output_dir)
+            raise Exception("yt-dlp extract_info returned None")
 
-        # Handle search results vs direct video info
         if 'entries' in info and info['entries']:
             valid_entries = [e for e in info['entries'] if e is not None]
             video_info = valid_entries[0] if valid_entries else info
@@ -120,7 +107,7 @@ def download_audio(song_name):
             video_info = info
 
         if not video_info:
-            return download_audio_pytubefix(song_name, output_dir)
+            raise Exception("No video info parsed")
 
         raw_path = ydl.prepare_filename(video_info)
         base_path = os.path.splitext(raw_path)[0]
@@ -128,9 +115,7 @@ def download_audio(song_name):
 
         simple_name = clean_title(video_info.get('title', 'Song'))
         new_mp3_path = os.path.join(output_dir, f"{simple_name}.mp3")
-        new_jpg_path = os.path.join(output_dir, f"{simple_name}.jpg")
 
-        # Check if any new MP3 file was created in library
         found_mp3 = None
         if os.path.exists(actual_mp3_path):
             os.replace(actual_mp3_path, new_mp3_path)
@@ -145,11 +130,26 @@ def download_audio(song_name):
                     break
 
         if not found_mp3 or not os.path.exists(found_mp3):
-            print("[!] yt-dlp did not generate audio file on disk. Invoking pytubefix fallback...")
-            return download_audio_pytubefix(song_name, output_dir)
+            raise Exception("yt-dlp did not produce an MP3 file on disk")
 
         return {
             "mp3": found_mp3,
             "title": simple_name,
             "artist": video_info.get('uploader', '').replace("- Topic", "").strip()
         }
+
+def download_audio(song_name):
+    output_dir = 'library'
+    if not os.path.exists(output_dir): os.makedirs(output_dir)
+
+    # Primary: PyTubeFix MWEB client (cloud datacenter compatible)
+    try:
+        print(f"[*] Primary audio engine (PyTubeFix) starting for '{song_name}'...")
+        return download_audio_pytubefix(song_name, output_dir)
+    except Exception as pyerr:
+        print(f"[!] Primary PyTubeFix engine failed: {pyerr}. Attempting yt-dlp fallback...")
+        try:
+            return download_audio_ytdlp(song_name, output_dir)
+        except Exception as yterr:
+            print(f"[!] yt-dlp fallback engine failed: {yterr}")
+            raise Exception(f"All audio download engines failed. PyTubeFix: {str(pyerr)} | yt-dlp: {str(yterr)}")
