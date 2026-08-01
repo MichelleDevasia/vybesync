@@ -1,5 +1,6 @@
-// Premium Karaoke Platform Engine
-const API_BASE = window.location.origin;
+const API_BASE = (window.location.hostname.includes('localhost') || window.location.hostname.includes('127.0.0.1'))
+    ? window.location.origin
+    : 'https://vybesync-backend-a7yi.onrender.com';
 
 // Session & Platform State
 let token = localStorage.getItem('auth_token') || null;
