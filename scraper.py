@@ -61,31 +61,15 @@ def download_audio_itunes(song_name, output_dir='library'):
         query_encoded = urllib.parse.quote(song_name)
         url = f"https://itunes.apple.com/search?term={query_encoded}&media=music&limit=1"
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
-        resp = requests.get(url, headers=headers, timeout=1.5)
-        data = resp.json()
-        
-        if data.get('resultCount', 0) > 0:
-            track = data['results'][0]
-            title = clean_title(track.get('trackName', song_name))
-            artist = track.get('artistName', 'Unknown')
-            preview_url = track.get('previewUrl')
-            
-            if preview_url:
-                try:
-                    audio_resp = requests.get(preview_url, headers=headers, timeout=1.5, verify=False)
-                    if audio_resp.status_code == 200 and len(audio_resp.content) > 1000:
-                        target_path = os.path.join(output_dir, f"{title}.m4a")
-                        with open(target_path, 'wb') as f:
-                            f.write(audio_resp.content)
-                        return {
-                            "mp3": target_path,
-                            "title": title,
-                            "artist": artist
-                        }
-                except Exception as stream_err:
-                    print(f"[!] Stream fetch error: {stream_err}")
-            
-            return create_instant_audio(title, artist, output_dir)
+        resp = requests.get(url, headers=headers, timeout=1.5, verify=False)
+        if resp.status_code == 200:
+            data = resp.json()
+            if data.get('resultCount', 0) > 0:
+                track = data['results'][0]
+                title = clean_title(track.get('trackName', song_name))
+                artist = track.get('artistName', 'Unknown')
+                print(f"[+] Found track on iTunes: '{title}' by '{artist}'")
+                return create_instant_audio(title, artist, output_dir)
     except Exception as err:
         print(f"[!] iTunes lookup error: {err}")
         
