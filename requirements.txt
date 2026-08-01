@@ -5,29 +5,16 @@ flask-sqlalchemy==2.5.1
 sqlalchemy==1.4.47
 pyjwt==2.13.0
 psycopg2-binary==2.9.9
-
-# Strict compatibility pins to prevent Spleeter termui import crashes
-click==7.1.2
 Werkzeug==2.2.3
-setuptools==65.5.0
 
-# Core AI Audio processing
-spleeter==2.4.0
-tensorflow==2.9.3
-librosa==0.11.0
+# Audio processing
+soundfile==0.12.1
 numpy==1.26.4
-ffmpeg-python==0.2.0
-imageio-ffmpeg
-
+librosa==0.11.0
 
 # Web Scraping & Integrations
 yt-dlp
-dukpy==0.6.0
-pytubefix==10.11.0
 requests==2.33.1
 lyricsgenius==3.7.3
 wikipedia==1.4.0
 musicbrainzngs==0.7.1
-
-# Fallback speech-to-text transcription
-openai-whisper==20250625

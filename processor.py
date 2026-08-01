@@ -78,27 +78,8 @@ def separate_vocals(input_file_path):
     if not os.path.exists(output_base_folder):
         os.makedirs(output_base_folder)
 
-    # 1. Primary Engine: Instant 0.05s DSP Phase Cancellation (100% cloud-speed & zero timeouts)
-    try:
-        if fast_dsp_vocal_remover(input_file_path, output_base_folder):
-            return True
-    except Exception as dsp_err:
-        print(f"[!] Primary DSP engine warning: {dsp_err}")
-
-    # 2. Secondary Engine: Spleeter AI Model
-    sep = get_separator()
-    if sep:
-        try:
-            print(f"[*] AI Spleeter starting separation for: {input_file_path}")
-            sep.separate_to_file(input_file_path, output_base_folder, duration=30)
-            print("[+] Spleeter AI separation completed successfully.")
-            gc.collect()
-            return True
-        except Exception as e:
-            print(f"[!] AI separation failed: {e}")
-            gc.collect()
-
-    return False
+    # Instant 0.05s DSP Phase Cancellation engine
+    return fast_dsp_vocal_remover(input_file_path, output_base_folder)
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
