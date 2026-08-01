@@ -34,7 +34,7 @@ def get_lyrics_and_metadata(title, vocal_path=None): # Added vocal_path
     print(f"DEBUG: Initial YouTube Title -> {title}")
     
     try:
-        genius = lyricsgenius.Genius(GENIUS_TOKEN, verbose=False)
+        genius = lyricsgenius.Genius(GENIUS_TOKEN, verbose=False, timeout=3, retries=1)
         
         # Cleaning the title
         clean_title = re.sub(r'\(.*?\)|\[.*?\]', '', title)
