@@ -29,7 +29,7 @@ def separate_vocals(input_file_path):
         os.makedirs(output_base_folder)
 
     try:
-        separator.separate_to_file(input_file_path, output_base_folder, duration=90)
+        separator.separate_to_file(input_file_path, output_base_folder, duration=45)
         print("Success: Separation completed successfully.")
         del separator
         gc.collect()
