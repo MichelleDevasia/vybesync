@@ -26,6 +26,8 @@ def resolve_youtube_url(query):
         print("URL resolution fallback error:", e)
     return f"ytsearch5:{query}"
 
+import time
+
 def download_audio_pytubefix(song_name, output_dir='library'):
     from pytubefix import YouTube
     direct_url = resolve_youtube_url(song_name)
@@ -33,7 +35,7 @@ def download_audio_pytubefix(song_name, output_dir='library'):
         raise Exception(f"Could not resolve YouTube URL for '{song_name}'")
     
     last_err = None
-    for client_name in ['MWEB', 'ANDROID', 'WEB', 'IOS']:
+    for client_name in ['MWEB', 'ANDROID']:
         try:
             print(f"[*] Pytubefix trying client='{client_name}' for: {direct_url}")
             yt = YouTube(direct_url, client=client_name)
@@ -54,6 +56,7 @@ def download_audio_pytubefix(song_name, output_dir='library'):
         except Exception as e:
             print(f"[!] pytubefix client '{client_name}' failed:", e)
             last_err = e
+            time.sleep(1.5)
 
     raise Exception(f"Pytubefix clients failed: {str(last_err)}")
 
