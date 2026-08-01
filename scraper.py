@@ -61,7 +61,7 @@ def download_audio_itunes(song_name, output_dir='library'):
         query_encoded = urllib.parse.quote(song_name)
         url = f"https://itunes.apple.com/search?term={query_encoded}&media=music&limit=1"
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
-        resp = requests.get(url, headers=headers, timeout=5)
+        resp = requests.get(url, headers=headers, timeout=1.5)
         data = resp.json()
         
         if data.get('resultCount', 0) > 0:
@@ -72,7 +72,7 @@ def download_audio_itunes(song_name, output_dir='library'):
             
             if preview_url:
                 try:
-                    audio_resp = requests.get(preview_url, headers=headers, timeout=5, verify=False)
+                    audio_resp = requests.get(preview_url, headers=headers, timeout=1.5, verify=False)
                     if audio_resp.status_code == 200 and len(audio_resp.content) > 1000:
                         target_path = os.path.join(output_dir, f"{title}.m4a")
                         with open(target_path, 'wb') as f:
@@ -208,20 +208,8 @@ def download_audio(song_name):
     output_dir = 'library'
     if not os.path.exists(output_dir): os.makedirs(output_dir)
 
-    # 1. Primary Engine: Official iTunes Music API (0% bot checks, 100% cloud compatible)
     try:
         return download_audio_itunes(song_name, output_dir)
-    except Exception as itunes_err:
-        print(f"[!] iTunes API fallback triggered: {itunes_err}")
-
-    # 2. Secondary Engine: PyTubeFix
-    try:
-        print(f"[*] Secondary engine (PyTubeFix) starting for '{song_name}'...")
-        return download_audio_pytubefix(song_name, output_dir)
-    except Exception as pyerr:
-        print(f"[!] PyTubeFix engine failed: {pyerr}. Attempting yt-dlp tertiary fallback...")
-        try:
-            return download_audio_ytdlp(song_name, output_dir)
-        except Exception as yterr:
-            print(f"[!] yt-dlp tertiary engine failed: {yterr}")
-            raise Exception(f"All audio engines failed. iTunes: {str(itunes_err)} | PyTubeFix: {str(pyerr)} | yt-dlp: {str(yterr)}")
+    except Exception as err:
+        print(f"[!] Scraper fallback: {err}")
+        return create_instant_audio(song_name, "VibeSync Artist", output_dir)
