@@ -43,7 +43,12 @@ def download_audio_itunes(song_name, output_dir='library'):
         
         if preview_url:
             print(f"[*] iTunes API track found: {title} by {artist}")
-            audio_resp = requests.get(preview_url, headers=headers, timeout=15)
+            try:
+                audio_resp = requests.get(preview_url, timeout=15)
+            except Exception as e:
+                print(f"[!] Primary preview fetch error: {e}. Trying verify=False...")
+                audio_resp = requests.get(preview_url, timeout=15, verify=False)
+                
             target_mp3 = os.path.join(output_dir, f"{title}.mp3")
             with open(target_mp3, 'wb') as f:
                 f.write(audio_resp.content)
