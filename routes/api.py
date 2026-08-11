@@ -29,3 +29,8 @@ api_bp.route('/test_ytdlp', methods=['GET'])(SongController.test_ytdlp)
 def reload_gunicorn():
     import os
     os._exit(0)
+
+@api_bp.route('/test_version', methods=['GET'])
+def test_version():
+    from flask import jsonify
+    return jsonify({"version": "v10_debug_check"}), 200
