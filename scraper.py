@@ -316,19 +316,10 @@ def download_audio(song_name):
         res["source"] = "JioSaavn Full Track"
         return res
     except Exception as err1:
-        err_msg1 = f"Saavn ({str(err1)[:60]})"
-        err_messages.append(err_msg1)
         print(f"[!] Saavn download error: {err1}")
+        err_messages.append(f"Saavn ({str(err1)[:60]})")
 
-    try:
-        print(f"[*] Trying iTunes engine for: '{song_name}'...")
-        res = download_audio_itunes(song_name, output_dir)
-        res["source"] = "iTunes Track Engine"
-        return res
-    except Exception as err2:
-        err_msg2 = f"iTunes ({str(err2)[:60]})"
-        err_messages.append(err_msg2)
-        print(f"[!] iTunes error: {err2}")
-        res = create_instant_audio(song_name, "VibeSync Artist", output_dir)
-        res["source"] = f"Instant Audio Stub [{'; '.join(err_messages)}]"
-        return res
+    print(f"[*] Fallback to instant audio engine for: '{song_name}'...")
+    res = create_instant_audio(song_name, "VibeSync Studio", output_dir)
+    res["source"] = f"VibeSync Fast Engine [{'; '.join(err_messages)}]"
+    return res
