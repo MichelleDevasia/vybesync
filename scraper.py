@@ -198,6 +198,7 @@ def download_audio_soundcloud(song_name, output_dir='library'):
         'ignoreerrors': False,
         'no_warnings': True,
         'nocheckcertificate': True,
+        'legacy_server_connect': True,
         'outtmpl': f'{output_dir}/%(title)s.%(ext)s',
         'noplaylist': True,
         'quiet': True,
@@ -230,6 +231,45 @@ def download_audio_soundcloud(song_name, output_dir='library'):
                 }
 
     raise Exception("SoundCloud could not produce WAV file")
+
+def download_audio_saavn(song_name, output_dir='library'):
+    import urllib.parse, requests, imageio_ffmpeg, subprocess
+    query_encoded = urllib.parse.quote(song_name)
+    url = f"https://saavn-api.vercel.app/search/songs?query={query_encoded}"
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+    
+    resp = requests.get(url, headers=headers, timeout=5)
+    if resp.status_code == 200:
+        results = resp.json()
+        if isinstance(results, list) and len(results) > 0:
+            track = results[0]
+            media_url = track.get('url')
+            title = clean_title(track.get('title', song_name))
+            artist = track.get('subtitle', 'Featured Artist')
+            
+            if media_url:
+                print(f"[+] Found full track on Saavn: '{title}' by '{artist}'")
+                raw_mp4 = os.path.join(output_dir, f"temp_{title}.mp4")
+                target_wav = os.path.join(output_dir, f"{title}.wav")
+                
+                audio_bytes = requests.get(media_url, headers=headers, timeout=15).content
+                with open(raw_mp4, 'wb') as f:
+                    f.write(audio_bytes)
+                    
+                ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
+                res = subprocess.run(
+                    [ffmpeg_exe, '-y', '-i', os.path.abspath(raw_mp4), os.path.abspath(target_wav)],
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+                )
+                if os.path.exists(raw_mp4): os.remove(raw_mp4)
+                
+                if res.returncode == 0 and os.path.exists(target_wav):
+                    return {
+                        "mp3": target_wav,
+                        "title": title,
+                        "artist": artist
+                    }
+    raise Exception("Saavn direct download failed")
 
 def download_audio(song_name):
     output_dir = 'library'
