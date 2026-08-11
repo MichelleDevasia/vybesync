@@ -10,7 +10,7 @@ class Song(db.Model):
     artist = db.Column(db.String(256), nullable=True)
     composer = db.Column(db.String(256), nullable=True)
     pitch = db.Column(db.String(10), nullable=True)
-    source = db.Column(db.String(100), nullable=True)
+    source = db.Column(db.String(512), nullable=True)
     cover_image = db.Column(db.String(256), nullable=True)
     lyrics = db.Column(db.Text, nullable=True)
     audio_file_url = db.Column(db.String(512), nullable=True)     # Path or remote URL
