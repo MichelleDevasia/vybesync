@@ -16,6 +16,22 @@ def resolve_youtube_url(query):
     if query.startswith(('http://', 'https://')):
         return query
     try:
+        ydl_opts = {
+            'quiet': True,
+            'nocheckcertificate': True,
+            'extract_flat': True,
+            'extractor_args': {'youtube': {'player_client': ['android', 'ios', 'mweb', 'web']}}
+        }
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(f"ytsearch1:{query}", download=False)
+            if info and 'entries' in info and info['entries']:
+                v_url = info['entries'][0].get('url')
+                if v_url and v_url.startswith(('http://', 'https://')):
+                    return v_url
+    except Exception as e:
+        print("[!] yt-dlp flat resolution error:", e)
+
+    try:
         query_encoded = urllib.parse.quote(query)
         url = f"https://www.youtube.com/results?search_query={query_encoded}"
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36'}
@@ -24,7 +40,8 @@ def resolve_youtube_url(query):
         if video_ids:
             return f"https://www.youtube.com/watch?v={video_ids[0]}"
     except Exception as e:
-        print("URL resolution fallback error:", e)
+        print("[!] HTML resolution error:", e)
+
     return f"ytsearch1:{query}"
 
 def create_instant_audio(title, artist, output_dir='library'):
@@ -178,8 +195,11 @@ def download_audio_ytdlp(song_name, output_dir='library'):
 
             res = subprocess.run(
                 [ffmpeg_exe, '-y', '-i', os.path.abspath(downloaded_raw), os.path.abspath(target_wav)],
-                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+                capture_output=True, text=True
             )
+            if res.returncode != 0:
+                print(f"[!] ffmpeg conversion failed (code {res.returncode}): {res.stderr}")
+
             if os.path.exists(downloaded_raw):
                 try: os.remove(downloaded_raw)
                 except Exception: pass
