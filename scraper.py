@@ -186,7 +186,7 @@ def download_audio_ytdlp(song_name, output_dir='library'):
         except Exception: pass
 
     ydl_opts = {
-        'format': 'bestaudio/best/18/b',
+        'format': '18/best/bestaudio/b',
         'ffmpeg_location': os.path.dirname(ffmpeg_exe),
         'ignoreerrors': False,
         'no_warnings': True,
