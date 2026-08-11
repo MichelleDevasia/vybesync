@@ -34,7 +34,7 @@ class ProcessingService:
         
         singer = meta['singer'] if meta else data['artist']
         composer = meta['composer'] if meta else "Unknown Composer"
-        source = data.get('source') or meta.get('source') or "VibeSync Engine"
+        source = data.get('source', 'VibeSync Full Track Engine')
         lyrics = meta['lyrics'] if meta else "Lyrics not found."
         
         # Key/scale detection
