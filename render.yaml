@@ -3,7 +3,7 @@ services:
     name: vybesync-backend
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app
+    startCommand: gunicorn --preload --workers 2 app:app
     envVars:
       - key: GENIUS_TOKEN
         sync: false
