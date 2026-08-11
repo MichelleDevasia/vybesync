@@ -43,15 +43,20 @@ def resolve_youtube_url(query):
         ydl_opts = {
             'quiet': True,
             'nocheckcertificate': True,
+            'legacy_server_connect': True,
             'extract_flat': True,
             'extractor_args': {'youtube': {'player_client': ['tv', 'android_vr', 'web_embedded', 'mweb', 'android', 'web']}}
         }
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(f"ytsearch1:{query}", download=False)
             if info and 'entries' in info and info['entries']:
-                v_url = info['entries'][0].get('url')
-                if v_url and v_url.startswith(('http://', 'https://')):
-                    return v_url
+                entry = info['entries'][0]
+                if entry:
+                    v_url = entry.get('url') or entry.get('id')
+                    if v_url:
+                        if v_url.startswith(('http://', 'https://')):
+                            return v_url
+                        return f"https://www.youtube.com/watch?v={v_url}"
     except Exception as e:
         print("[!] yt-dlp flat resolution error:", e)
 
