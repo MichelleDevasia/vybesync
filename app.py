@@ -23,9 +23,18 @@ CORS(app)  # Support cross-origin queries (important for Vercel/Render decouplin
 
 db.init_app(app)
 
-# Initialize database tables and folders
+# Initialize database tables and folders with automatic fallback
 with app.app_context():
-    db.create_all()  # Auto-creates SQLite schema locally if tables do not exist
+    try:
+        db.create_all()  # Auto-creates schema if tables do not exist
+        print("[+] Successfully connected to primary database.")
+    except Exception as db_err:
+        print(f"[!] Primary DB connection error: {db_err}")
+        print("[*] Falling back to local SQLite database...")
+        app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///karaoke_studio.db'
+        db.engine.dispose()
+        db.init_app(app)
+        db.create_all()
     StorageService.initialize()  # Create folders for local storage fallback
 
 # Register Blueprints
