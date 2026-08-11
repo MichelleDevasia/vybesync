@@ -5,6 +5,16 @@ import urllib.parse
 import requests
 import time
 
+def get_ffmpeg():
+    import imageio_ffmpeg, stat
+    exe = imageio_ffmpeg.get_ffmpeg_exe()
+    try:
+        st = os.stat(exe)
+        os.chmod(exe, st.st_mode | stat.S_IEXEC | stat.S_IXGRP | stat.S_IXOTH | 0o755)
+    except Exception:
+        pass
+    return exe
+
 def clean_title(text):
     # Removes everything after | - ( [ and special characters like '歌'
     text = re.split(r'[|\-\(\[歌]', text)[0]
@@ -100,7 +110,7 @@ def download_audio_itunes(song_name, output_dir='library'):
                     # Convert m4a to wav using imageio_ffmpeg
                     try:
                         import imageio_ffmpeg, subprocess
-                        ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
+                        ffmpeg_exe = get_ffmpeg()
                         subprocess.run([ffmpeg_exe, '-y', '-i', m4a_path, wav_path], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                         if os.path.exists(m4a_path): os.remove(m4a_path)
                         return {
@@ -152,7 +162,7 @@ def download_audio_pytubefix(song_name, output_dir='library'):
 
 def download_audio_ytdlp(song_name, output_dir='library'):
     import imageio_ffmpeg, subprocess, glob
-    ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
+    ffmpeg_exe = get_ffmpeg()
 
     search_target = resolve_youtube_url(song_name)
     print(f"[*] yt-dlp downloading full track target: {search_target}")
@@ -237,7 +247,7 @@ def download_audio_saavn(song_name, output_dir='library'):
                 with open(raw_mp4, 'wb') as f:
                     f.write(audio_bytes)
                     
-                ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
+                ffmpeg_exe = get_ffmpeg()
                 res = subprocess.run(
                     [ffmpeg_exe, '-y', '-i', os.path.abspath(raw_mp4), os.path.abspath(target_wav)],
                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
