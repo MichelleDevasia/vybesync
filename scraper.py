@@ -25,7 +25,7 @@ def resolve_youtube_url(query):
             return f"https://www.youtube.com/watch?v={video_ids[0]}"
     except Exception as e:
         print("URL resolution fallback error:", e)
-    return f"ytsearch5:{query}"
+    return f"ytsearch1:{query}"
 
 def create_instant_audio(title, artist, output_dir='library'):
     """Generates a clean 3-second stereo WAV audio file in 0.001 seconds using stdlib."""
@@ -134,11 +134,15 @@ def download_audio_pytubefix(song_name, output_dir='library'):
     raise Exception(f"Pytubefix clients failed: {str(last_err)}")
 
 def download_audio_ytdlp(song_name, output_dir='library'):
-    import imageio_ffmpeg, subprocess
+    import imageio_ffmpeg, subprocess, glob
     ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
 
     search_target = resolve_youtube_url(song_name)
     print(f"[*] yt-dlp downloading full track target: {search_target}")
+
+    for old_raw in glob.glob(os.path.join(output_dir, "download_raw.*")):
+        try: os.remove(old_raw)
+        except Exception: pass
 
     ydl_opts = {
         'format': 'bestaudio/best/18/b',
@@ -148,7 +152,7 @@ def download_audio_ytdlp(song_name, output_dir='library'):
         'nocheckcertificate': True,
         'legacy_server_connect': True,
         'extractor_args': {'youtube': {'player_client': ['android', 'ios', 'mweb', 'web']}},
-        'outtmpl': f'{output_dir}/%(title)s.%(ext)s',
+        'outtmpl': os.path.join(output_dir, 'download_raw.%(ext)s'),
         'noplaylist': True,
         'quiet': True,
     }
@@ -164,21 +168,23 @@ def download_audio_ytdlp(song_name, output_dir='library'):
         else:
             video_info = info
 
-        downloaded_raw = ydl.prepare_filename(video_info)
         title = clean_title(video_info.get('title', song_name))
         artist = video_info.get('uploader', 'Unknown Artist').replace("- Topic", "").strip()
 
-        target_wav = os.path.join(output_dir, f"{title}.wav")
+        raw_files = glob.glob(os.path.join(output_dir, "download_raw.*"))
+        if raw_files:
+            downloaded_raw = raw_files[0]
+            target_wav = os.path.join(output_dir, f"{title}.wav")
 
-        # Convert downloaded file (MP4/WebM/MP3) to standard WAV using imageio_ffmpeg
-        if os.path.exists(downloaded_raw):
             res = subprocess.run(
                 [ffmpeg_exe, '-y', '-i', os.path.abspath(downloaded_raw), os.path.abspath(target_wav)],
                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
             )
+            if os.path.exists(downloaded_raw):
+                try: os.remove(downloaded_raw)
+                except Exception: pass
+
             if res.returncode == 0 and os.path.exists(target_wav):
-                if os.path.abspath(downloaded_raw) != os.path.abspath(target_wav) and os.path.exists(downloaded_raw):
-                    os.remove(downloaded_raw)
                 return {
                     "mp3": target_wav,
                     "title": title,
