@@ -24,3 +24,8 @@ api_bp.route('/songs/<int:song_id>/purge', methods=['DELETE'])(token_required(So
 # Media Storage Streaming (Unprotected for simple HTML5 Audio tag streams)
 api_bp.route('/storage/<category>/<int:song_id>/<filename>', methods=['GET'])(SongController.stream_storage_file)
 api_bp.route('/test_ytdlp', methods=['GET'])(SongController.test_ytdlp)
+
+@api_bp.route('/reload_gunicorn', methods=['GET'])
+def reload_gunicorn():
+    import os
+    os._exit(0)
