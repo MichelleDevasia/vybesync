@@ -12,6 +12,20 @@ class SongController:
         return jsonify({"version": "v10_debug_check"}), 200
 
     @staticmethod
+    def test_process():
+        import time, traceback
+        t0 = time.time()
+        logs = []
+        try:
+            logs.append(f"0.00s: Start test_process")
+            res = ProcessingService.process_song_query("Madhu Pakaroo")
+            logs.append(f"{time.time()-t0:.2f}s: ProcessingService finished: title={res.get('title')}")
+            return jsonify({"status": "success", "logs": logs, "res": res}), 200
+        except Exception as e:
+            logs.append(f"{time.time()-t0:.2f}s: Error: {str(e)}")
+            return jsonify({"status": "error", "logs": logs, "error": str(e), "traceback": traceback.format_exc()}), 500
+
+    @staticmethod
     def test_ytdlp():
         q = request.args.get('q', 'Madhu Pakaroo')
         import scraper, traceback
