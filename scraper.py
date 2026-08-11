@@ -147,6 +147,7 @@ def download_audio_ytdlp(song_name, output_dir='library'):
         'no_warnings': True,
         'nocheckcertificate': True,
         'legacy_server_connect': True,
+        'extractor_args': {'youtube': {'player_client': ['android', 'ios', 'mweb', 'web']}},
         'outtmpl': f'{output_dir}/%(title)s.%(ext)s',
         'noplaylist': True,
         'quiet': True,
@@ -192,7 +193,7 @@ def download_audio_saavn(song_name, output_dir='library'):
     url = f"https://saavn-api.vercel.app/search/songs?query={query_encoded}"
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
     
-    resp = requests.get(url, headers=headers, timeout=5)
+    resp = requests.get(url, headers=headers, timeout=10, verify=False)
     if resp.status_code == 200:
         results = resp.json()
         if isinstance(results, list) and len(results) > 0:
@@ -206,7 +207,7 @@ def download_audio_saavn(song_name, output_dir='library'):
                 raw_mp4 = os.path.join(output_dir, f"temp_{title}.mp4")
                 target_wav = os.path.join(output_dir, f"{title}.wav")
                 
-                audio_bytes = requests.get(media_url, headers=headers, timeout=15).content
+                audio_bytes = requests.get(media_url, headers=headers, timeout=15, verify=False).content
                 with open(raw_mp4, 'wb') as f:
                     f.write(audio_bytes)
                     
@@ -235,8 +236,13 @@ def download_audio(song_name):
     except Exception as err1:
         print(f"[!] Full YouTube download error: {err1}")
         try:
-            print(f"[*] Fallback to iTunes track preview for: '{song_name}'...")
-            return download_audio_itunes(song_name, output_dir)
+            print(f"[*] Trying full-length Saavn download for: '{song_name}'...")
+            return download_audio_saavn(song_name, output_dir)
         except Exception as err2:
-            print(f"[!] iTunes fallback error: {err2}")
-            return create_instant_audio(song_name, "VibeSync Artist", output_dir)
+            print(f"[!] Saavn download error: {err2}")
+            try:
+                print(f"[*] Fallback to iTunes track preview for: '{song_name}'...")
+                return download_audio_itunes(song_name, output_dir)
+            except Exception as err3:
+                print(f"[!] iTunes fallback error: {err3}")
+                return create_instant_audio(song_name, "VibeSync Artist", output_dir)
