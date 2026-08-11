@@ -44,6 +44,8 @@ def resolve_youtube_url(query):
             'quiet': True,
             'nocheckcertificate': True,
             'legacy_server_connect': True,
+            'socket_timeout': 3,
+            'retries': 1,
             'extract_flat': True,
             'extractor_args': {'youtube': {'player_client': ['tv', 'android_vr', 'web_embedded', 'mweb', 'android', 'web']}}
         }
@@ -197,6 +199,9 @@ def download_audio_ytdlp(song_name, output_dir='library'):
         'no_warnings': True,
         'nocheckcertificate': True,
         'legacy_server_connect': True,
+        'socket_timeout': 5,
+        'retries': 1,
+        'fragment_retries': 1,
         'extractor_args': {'youtube': {'player_client': ['tv', 'android_vr', 'web_embedded', 'mweb', 'android', 'web']}},
         'outtmpl': os.path.join(output_dir, 'download_raw.%(ext)s'),
         'noplaylist': True,
