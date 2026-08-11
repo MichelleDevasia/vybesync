@@ -199,9 +199,9 @@ def download_audio_ytdlp(song_name, output_dir='library'):
         'no_warnings': True,
         'nocheckcertificate': True,
         'legacy_server_connect': True,
-        'socket_timeout': 5,
-        'retries': 1,
-        'fragment_retries': 1,
+        'socket_timeout': 3,
+        'retries': 0,
+        'fragment_retries': 0,
         'extractor_args': {'youtube': {'player_client': ['tv', 'android_vr', 'web_embedded', 'mweb', 'android', 'web']}},
         'outtmpl': os.path.join(output_dir, 'download_raw.%(ext)s'),
         'noplaylist': True,
@@ -258,7 +258,7 @@ def download_audio_saavn(song_name, output_dir='library'):
     url = f"https://saavn-api.vercel.app/search/songs?query={query_encoded}"
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
     
-    resp = requests.get(url, headers=headers, timeout=10, verify=False)
+    resp = requests.get(url, headers=headers, timeout=3, verify=False)
     if resp.status_code == 200:
         data = resp.json()
         results = data.get('data', {}).get('results', []) if isinstance(data, dict) and 'data' in data else data
@@ -282,7 +282,7 @@ def download_audio_saavn(song_name, output_dir='library'):
                         target_wav = os.path.join(output_dir, f"{title}_{int(time.time())}.wav")
                 raw_mp4 = os.path.join(output_dir, "download_raw_saavn.mp4")
                 
-                audio_bytes = requests.get(media_url, headers=headers, timeout=15, verify=False).content
+                audio_bytes = requests.get(media_url, headers=headers, timeout=5, verify=False).content
                 with open(raw_mp4, 'wb') as f:
                     f.write(audio_bytes)
                     
