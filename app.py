@@ -53,7 +53,7 @@ app.register_blueprint(api_bp, url_prefix='/api')
 @app.route('/')
 def serve_index():
     resp = send_from_directory('frontend', 'index.html')
-    resp.headers['X-App-Version'] = 'v10_debug_check'
+    resp.headers['X-App-Version'] = 'v11_deploy_check'
     return resp
 
 @app.route('/<path:path>')
