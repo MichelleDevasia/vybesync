@@ -30,7 +30,7 @@ def resolve_youtube_url(query):
             'quiet': True,
             'nocheckcertificate': True,
             'extract_flat': True,
-            'extractor_args': {'youtube': {'player_client': ['android', 'ios', 'mweb', 'web']}}
+            'extractor_args': {'youtube': {'player_client': ['tv', 'android_vr', 'web_embedded', 'mweb', 'android', 'web']}}
         }
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(f"ytsearch1:{query}", download=False)
@@ -178,7 +178,7 @@ def download_audio_ytdlp(song_name, output_dir='library'):
         'no_warnings': True,
         'nocheckcertificate': True,
         'legacy_server_connect': True,
-        'extractor_args': {'youtube': {'player_client': ['android', 'ios', 'mweb', 'web']}},
+        'extractor_args': {'youtube': {'player_client': ['tv', 'android_vr', 'web_embedded', 'mweb', 'android', 'web']}},
         'outtmpl': os.path.join(output_dir, 'download_raw.%(ext)s'),
         'noplaylist': True,
         'quiet': True,
