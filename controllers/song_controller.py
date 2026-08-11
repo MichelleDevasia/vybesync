@@ -6,10 +6,26 @@ from services.processing_service import ProcessingService
 from services.storage_service import StorageService
 from config import Config
 
+# Global dictionary to store async task statuses
+ASYNC_TASKS = {}
+
 class SongController:
     @staticmethod
     def test_version():
         return jsonify({"version": "v10_debug_check"}), 200
+
+    @staticmethod
+    def get_task_status(task_id):
+        if task_id not in ASYNC_TASKS:
+            return jsonify({"error": "Task not found"}), 404
+            
+        task = ASYNC_TASKS[task_id]
+        if task['status'] == 'completed':
+            return jsonify(task['data']), 201
+        elif task['status'] == 'error':
+            return jsonify({"error": task['error']}), 500
+        else:
+            return jsonify({"status": "processing"}), 202
 
     @staticmethod
     def test_process():
@@ -57,73 +73,54 @@ class SongController:
         if not query:
             return jsonify({"message": "Query parameter missing."}), 400
 
-        try:
-            # We must prevent Render from terminating the connection via 502 Bad Gateway due to idle timeout.
-            # We yield spaces every 2 seconds while processing in a background thread, then yield the JSON.
-            def generate():
-                import time, json, threading
-                
-                result_container = {}
-                def run_processing():
-                    try:
-                        res = ProcessingService.process_song_query(query)
-                        
-                        # Save to DB
-                        from app import app
-                        with app.app_context():
-                            song = Song(
-                                user_id=current_user.id,
-                                title=res["title"],
-                                artist=res["artist"],
-                                composer=res["composer"],
-                                pitch=res["pitch"],
-                                source=res["source"],
-                                lyrics=res["lyrics"],
-                                playlist=playlist_name,
-                                tags=tags_str
-                            )
-                            db.session.add(song)
-                            db.session.commit()
-                            
-                            audio_url = StorageService.save_original(res["local_mp3"], song.id)
-                            karaoke_url = StorageService.save_instrumental(res["local_instrumental"], song.id)
-                            cover_url = StorageService.save_cover(res["local_cover"], song.id)
-                            
-                            song.audio_file_url = audio_url
-                            song.karaoke_file_url = karaoke_url
-                            song.cover_image = cover_url
-                            db.session.commit()
-                            
-                            try:
-                                shutil_dir = os.path.join("karaoke_output", res["title"])
-                                if os.path.exists(shutil_dir):
-                                    import shutil
-                                    shutil.rmtree(shutil_dir)
-                            except Exception: pass
-                            
-                            result_container['data'] = song.to_dict()
-                    except Exception as e:
-                        result_container['error'] = str(e)
+        task_id = str(uuid.uuid4())
+        ASYNC_TASKS[task_id] = {"status": "processing"}
 
-                t = threading.Thread(target=run_processing)
-                t.start()
+        def run_processing():
+            try:
+                res = ProcessingService.process_song_query(query)
                 
-                # Keep connection alive while processing
-                while t.is_alive():
-                    yield b" "
-                    time.sleep(2)
+                # Save to DB
+                from app import app
+                with app.app_context():
+                    song = Song(
+                        user_id=current_user.id,
+                        title=res["title"],
+                        artist=res["artist"],
+                        composer=res["composer"],
+                        pitch=res["pitch"],
+                        source=res["source"],
+                        lyrics=res["lyrics"],
+                        playlist=playlist_name,
+                        tags=tags_str
+                    )
+                    db.session.add(song)
+                    db.session.commit()
                     
-                if 'error' in result_container:
-                    yield json.dumps({"error": result_container['error']}).encode('utf-8')
-                else:
-                    yield json.dumps(result_container['data']).encode('utf-8')
+                    audio_url = StorageService.save_original(res["local_mp3"], song.id)
+                    karaoke_url = StorageService.save_instrumental(res["local_instrumental"], song.id)
+                    cover_url = StorageService.save_cover(res["local_cover"], song.id)
+                    
+                    song.audio_file_url = audio_url
+                    song.karaoke_file_url = karaoke_url
+                    song.cover_image = cover_url
+                    db.session.commit()
+                    
+                    try:
+                        import os, shutil
+                        shutil_dir = os.path.join("karaoke_output", res["title"])
+                        if os.path.exists(shutil_dir):
+                            shutil.rmtree(shutil_dir)
+                    except Exception: pass
+                    
+                    ASYNC_TASKS[task_id] = {"status": "completed", "data": song.to_dict()}
+            except Exception as e:
+                ASYNC_TASKS[task_id] = {"status": "error", "error": str(e)}
 
-            from flask import Response
-            return Response(generate(), mimetype='application/json', status=201)
-
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({"message": f"Separation process failed: {str(e)}"}), 500
+        t = threading.Thread(target=run_processing)
+        t.start()
+        
+        return jsonify({"status": "processing", "task_id": task_id}), 202
 
     @staticmethod
     def stream_storage_file(category, song_id, filename):

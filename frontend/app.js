@@ -724,7 +724,7 @@ async function startGeneration() {
         }, 800);
 
         try {
-            const response = await fetch(`${API_BASE}/api/process`, {
+            let response = await fetch(`${API_BASE}/api/process`, {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
@@ -736,12 +736,22 @@ async function startGeneration() {
                     tags: tagsVal || null
                 })
             });
-            const data = await response.json();
+            let data = await response.json();
+            
+            // Polling for async background processing
+            while (response.status === 202) {
+                loadingStatus.innerText = 'PROCESSING AUDIO (This may take a minute)...';
+                await new Promise(r => setTimeout(r, 3000));
+                response = await fetch(`${API_BASE}/api/status/${data.task_id}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                data = await response.json();
+            }
             
             clearInterval(progressTimer);
             progressFill.style.width = '100%';
             
-            if (response.ok) {
+            if (response.ok && response.status === 201) {
                 loadingStatus.innerText = 'SUCCESS!';
                 activeSong = data;
                 showToast('Karaoke created successfully!', 'success');
@@ -760,7 +770,7 @@ async function startGeneration() {
                     cdEjectTray.classList.add('active');
                 }, 1000);
             } else {
-                showToast('Separation failed: ' + (data.message || 'Error'), 'error');
+                showToast('Separation failed: ' + (data.message || data.error || 'Unknown error'), 'error');
                 resetGeneratorState();
             }
         } catch (err) {
