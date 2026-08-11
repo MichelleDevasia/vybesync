@@ -45,7 +45,7 @@ def fast_dsp_vocal_remover(input_file_path, output_base_folder="karaoke_output")
         subprocess.run([
             ffmpeg_exe, '-y', '-i', os.path.abspath(input_file_path),
             '-af', 'pan=stereo|c0=0.5*c0-0.5*c1|c1=0.5*c0-0.5*c1',
-            '-ar', '44100', '-threads', '4',
+            '-ar', '22050', '-threads', '4',
             os.path.abspath(inst_path)
         ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         
@@ -53,7 +53,7 @@ def fast_dsp_vocal_remover(input_file_path, output_base_folder="karaoke_output")
         subprocess.run([
             ffmpeg_exe, '-y', '-i', os.path.abspath(input_file_path),
             '-af', 'pan=stereo|c0=0.5*c0+0.5*c1|c1=0.5*c0+0.5*c1',
-            '-ar', '44100', '-threads', '4',
+            '-ar', '22050', '-threads', '4',
             os.path.abspath(vocal_path)
         ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         

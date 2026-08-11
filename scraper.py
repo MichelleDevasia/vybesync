@@ -235,7 +235,7 @@ def download_audio_ytdlp(song_name, output_dir='library'):
                     target_wav = os.path.join(output_dir, f"{title}_{int(time.time())}.wav")
 
             res = subprocess.run(
-                [ffmpeg_exe, '-y', '-i', os.path.abspath(downloaded_raw), '-vn', '-ac', '2', '-ar', '44100', '-threads', '4', os.path.abspath(target_wav)],
+                [ffmpeg_exe, '-y', '-i', os.path.abspath(downloaded_raw), '-vn', '-ac', '2', '-ar', '22050', '-threads', '4', os.path.abspath(target_wav)],
                 capture_output=True, text=True
             )
             if res.returncode != 0:
@@ -290,7 +290,7 @@ def download_audio_saavn(song_name, output_dir='library'):
                     
                 ffmpeg_exe = get_ffmpeg()
                 res = subprocess.run(
-                    [ffmpeg_exe, '-y', '-i', os.path.abspath(raw_mp4), '-vn', '-ac', '2', '-ar', '44100', '-threads', '4', os.path.abspath(target_wav)],
+                    [ffmpeg_exe, '-y', '-i', os.path.abspath(raw_mp4), '-vn', '-ac', '2', '-ar', '22050', '-threads', '4', os.path.abspath(target_wav)],
                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
                 )
                 if os.path.exists(raw_mp4):
