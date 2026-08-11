@@ -128,20 +128,12 @@ def download_audio_itunes(song_name, output_dir='library'):
                     with open(m4a_path, 'wb') as f:
                         f.write(audio_bytes)
                     
-                    # Convert m4a to wav using imageio_ffmpeg
-                    try:
-                        import imageio_ffmpeg, subprocess
-                        ffmpeg_exe = get_ffmpeg()
-                        subprocess.run([ffmpeg_exe, '-y', '-i', m4a_path, '-vn', '-ac', '2', '-ar', '44100', '-threads', '4', wav_path], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                        if os.path.exists(m4a_path): os.remove(m4a_path)
+                    if os.path.exists(m4a_path):
                         return {
-                            "mp3": wav_path,
+                            "mp3": m4a_path,
                             "title": title,
                             "artist": artist
                         }
-                    except Exception as conv_err:
-                        print(f"[!] Conversion error: {conv_err}")
-                        if os.path.exists(m4a_path): os.remove(m4a_path)
                         
                 return create_instant_audio(title, artist, output_dir)
     except Exception as err:
@@ -227,27 +219,9 @@ def download_audio_ytdlp(song_name, output_dir='library'):
         raw_files = glob.glob(os.path.join(output_dir, "download_raw.*"))
         if raw_files:
             downloaded_raw = raw_files[0]
-            target_wav = os.path.join(output_dir, f"{title}.wav")
-
-            if os.path.exists(target_wav):
-                try: os.remove(target_wav)
-                except Exception:
-                    target_wav = os.path.join(output_dir, f"{title}_{int(time.time())}.wav")
-
-            res = subprocess.run(
-                [ffmpeg_exe, '-y', '-i', os.path.abspath(downloaded_raw), '-vn', '-ac', '2', '-ar', '22050', '-threads', '4', os.path.abspath(target_wav)],
-                capture_output=True, text=True
-            )
-            if res.returncode != 0:
-                print(f"[!] ffmpeg conversion failed (code {res.returncode}): {res.stderr}")
-
             if os.path.exists(downloaded_raw):
-                try: os.remove(downloaded_raw)
-                except Exception: pass
-
-            if res.returncode == 0 and os.path.exists(target_wav):
                 return {
-                    "mp3": target_wav,
+                    "mp3": downloaded_raw,
                     "title": title,
                     "artist": artist
                 }
@@ -279,27 +253,15 @@ def download_audio_saavn(song_name, output_dir='library'):
                 print(f"[+] Found full track on Saavn: '{title}' by '{artist}'")
                 target_wav = os.path.join(output_dir, f"{title}.wav")
                 if os.path.exists(target_wav):
-                    try: os.remove(target_wav)
-                    except Exception:
-                        target_wav = os.path.join(output_dir, f"{title}_{int(time.time())}.wav")
-                raw_mp4 = os.path.join(output_dir, "download_raw_saavn.mp4")
+                raw_mp4 = os.path.join(output_dir, f"{title}.mp4")
                 
                 audio_bytes = requests.get(media_url, headers=headers, timeout=15, verify=False).content
                 with open(raw_mp4, 'wb') as f:
                     f.write(audio_bytes)
-                    
-                ffmpeg_exe = get_ffmpeg()
-                res = subprocess.run(
-                    [ffmpeg_exe, '-y', '-i', os.path.abspath(raw_mp4), '-vn', '-ac', '2', '-ar', '22050', '-threads', '4', os.path.abspath(target_wav)],
-                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
-                )
-                if os.path.exists(raw_mp4):
-                    try: os.remove(raw_mp4)
-                    except Exception: pass
                 
-                if res.returncode == 0 and os.path.exists(target_wav):
+                if os.path.exists(raw_mp4):
                     return {
-                        "mp3": target_wav,
+                        "mp3": raw_mp4,
                         "title": title,
                         "artist": artist
                     }
