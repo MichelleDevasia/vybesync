@@ -314,11 +314,11 @@ def download_audio(song_name):
     with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
         future = executor.submit(download_audio_saavn, song_name, output_dir)
         try:
-            res = future.result(timeout=1.8)
+            res = future.result(timeout=15.0)
             res["source"] = "JioSaavn Full Track"
             return res
         except Exception as err1:
-            print(f"[!] Saavn timed out or failed (1.8s limit): {err1}")
+            print(f"[!] Saavn timed out or failed (15.0s limit): {err1}")
             err_messages.append("SaavnTimeout")
 
     print(f"[*] Fallback to instant audio engine for: '{song_name}'...")
