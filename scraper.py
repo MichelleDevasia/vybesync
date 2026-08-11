@@ -141,7 +141,7 @@ def download_audio_ytdlp(song_name, output_dir='library'):
     print(f"[*] yt-dlp downloading full track target: {search_target}")
 
     ydl_opts = {
-        'format': '18/b/best',
+        'format': 'bestaudio/best/18/b',
         'ffmpeg_location': ffmpeg_exe,
         'ignoreerrors': False,
         'no_warnings': True,
