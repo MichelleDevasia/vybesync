@@ -367,9 +367,24 @@
                                     <div class="audio-track-panel">
                                         <div class="track-info">
                                             <span>ORIGINAL VOCALS</span>
-                                            <span id="val-vocals">100%</span>
+                                            <span id="val-vocals">0%</span>
                                         </div>
-                                        <input type="range" id="vol-vocals" min="0" max="1" step="0.05" value="1">
+                                        <input type="range" id="vol-vocals" min="0" max="1" step="0.05" value="0">
+                                    </div>
+
+                                    <!-- Key Transpose Controls -->
+                                    <div class="audio-track-panel">
+                                        <div class="track-info">
+                                            <span>INSTRUMENTAL KEY (TRANSPOSE)</span>
+                                            <span id="val-pitch">0 semitones</span>
+                                        </div>
+                                        <div class="pitch-btn-group">
+                                            <button class="pitch-btn" data-semi="-2">-2</button>
+                                            <button class="pitch-btn" data-semi="-1">-1</button>
+                                            <button class="pitch-btn active" data-semi="0">0</button>
+                                            <button class="pitch-btn" data-semi="1">+1</button>
+                                            <button class="pitch-btn" data-semi="2">+2</button>
+                                        </div>
                                     </div>
 
                                     <!-- Speed Control Slider -->

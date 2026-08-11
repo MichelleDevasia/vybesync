@@ -21,6 +21,31 @@ let defaultLyricFontSize = parseInt(localStorage.getItem('lyric_font_size')) || 
 
 // Looping & Playback state
 let isLoopEnabled = false;
+let currentPitchSemitones = 0;
+
+function setPitchTranspose(semitones) {
+    currentPitchSemitones = semitones;
+    const pitchRatio = Math.pow(2, semitones / 12);
+    const baseSpeed = parseFloat(document.getElementById('vol-speed').value) || 1.0;
+    
+    instrumentalAudio.preservesPitch = false;
+    originalAudio.preservesPitch = false;
+    instrumentalAudio.playbackRate = baseSpeed * pitchRatio;
+    originalAudio.playbackRate = baseSpeed * pitchRatio;
+
+    const el = document.getElementById('val-pitch');
+    if (el) {
+        el.innerText = (semitones > 0 ? `+${semitones}` : `${semitones}`) + ' semitones';
+    }
+
+    document.querySelectorAll('.pitch-btn').forEach(btn => {
+        if (parseInt(btn.dataset.semi) === semitones) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+}
 
 // Dom selectors for main Views
 const screens = document.querySelectorAll('.screen');
@@ -308,23 +333,37 @@ function setupEventListeners() {
     });
 
     volSpeed.addEventListener('input', (e) => {
-        const speed = e.target.value;
-        originalAudio.playbackRate = speed;
-        instrumentalAudio.playbackRate = speed;
-        document.getElementById('val-speed').innerText = speed + 'x';
+        const speed = parseFloat(e.target.value);
+        const pitchRatio = Math.pow(2, currentPitchSemitones / 12);
+        instrumentalAudio.preservesPitch = false;
+        originalAudio.preservesPitch = false;
+        instrumentalAudio.playbackRate = speed * pitchRatio;
+        originalAudio.playbackRate = speed * pitchRatio;
+        document.getElementById('val-speed').innerText = speed.toFixed(1) + 'x';
+    });
+
+    document.querySelectorAll('.pitch-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const semitones = parseInt(e.target.dataset.semi);
+            setPitchTranspose(semitones);
+        });
     });
 
     btnLoop.addEventListener('click', () => {
         isLoopEnabled = !isLoopEnabled;
+        instrumentalAudio.loop = isLoopEnabled;
+        originalAudio.loop = isLoopEnabled;
+
         if (isLoopEnabled) {
             btnLoop.innerText = 'DISABLE LOOP';
             btnLoop.classList.add('neon-btn');
             document.getElementById('val-loop').innerText = 'ENABLED';
-            showToast('Looping current segment enabled', 'success');
+            showToast('Looping current track enabled', 'success');
         } else {
             btnLoop.innerText = 'ENABLE LOOP';
             btnLoop.classList.remove('neon-btn');
             document.getElementById('val-loop').innerText = 'OFF';
+            showToast('Looping disabled', 'info');
         }
     });
 
@@ -797,16 +836,15 @@ function loadSongIntoPlayer(song) {
 
     // Default mixer ranges
     document.getElementById('vol-instrumental').value = 1;
-    document.getElementById('vol-vocals').value = 1;
+    document.getElementById('vol-vocals').value = 0;
     document.getElementById('vol-speed').value = 1.0;
     document.getElementById('val-instrumental').innerText = '100%';
-    document.getElementById('val-vocals').innerText = '100%';
+    document.getElementById('val-vocals').innerText = '0%';
     document.getElementById('val-speed').innerText = '1.0x';
     
-    originalAudio.volume = 1;
     instrumentalAudio.volume = 1;
-    originalAudio.playbackRate = 1.0;
-    instrumentalAudio.playbackRate = 1.0;
+    originalAudio.volume = 0;
+    setPitchTranspose(0);
 
     document.getElementById('playback-progress').value = 0;
 }

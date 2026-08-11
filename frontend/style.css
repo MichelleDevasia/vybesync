@@ -562,21 +562,21 @@ body.light-theme .auth-overlay {
 
 .music-box {
     position: relative;
-    width: 480px;
+    width: 440px;
     background: var(--card-bg);
     backdrop-filter: var(--glass-blur);
-    border: 4px solid var(--primary);
-    border-radius: 28px;
-    padding: 35px;
+    border: 2px solid var(--border-color);
+    border-radius: 24px;
+    padding: 24px;
     box-shadow: var(--card-shadow);
     transition: var(--theme-transition);
 }
 
 .machine-grill {
-    height: 8px;
+    height: 6px;
     background: repeating-linear-gradient(90deg, var(--secondary), var(--secondary) 4px, transparent 4px, transparent 8px);
     border-radius: 4px;
-    margin-bottom: 28px;
+    margin-bottom: 20px;
     opacity: 0.4;
 }
 
@@ -584,7 +584,7 @@ body.light-theme .auth-overlay {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 35px;
+    margin-bottom: 20px;
 }
 
 .knob-group {
@@ -645,18 +645,7 @@ body.light-theme .auth-overlay {
 @keyframes blink { 50% { opacity: 0.3; } }
 
 .cassette-deck {
-    width: 100%; height: 150px;
-    background: var(--input-bg);
-    border: 1px solid var(--border-color);
-    border-radius: 20px;
-    padding: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 30px;
-    position: relative;
-    overflow: hidden;
-    transition: var(--theme-transition);
+    display: none;
 }
 
 .cassette-door {
@@ -1282,9 +1271,39 @@ body.light-theme .auth-overlay {
 .audio-track-panel {
     background: var(--input-bg);
     border: 1px solid var(--border-color);
-    padding: 16px;
     border-radius: 16px;
+    padding: 16px 20px;
+    margin-bottom: 16px;
     transition: var(--theme-transition);
+}
+
+.pitch-btn-group {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.pitch-btn {
+    flex: 1;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+    padding: 8px 0;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.pitch-btn:hover {
+    border-color: var(--primary);
+}
+
+.pitch-btn.active {
+    background: var(--primary);
+    color: var(--accent);
+    border-color: var(--primary);
 }
 
 .track-info {
