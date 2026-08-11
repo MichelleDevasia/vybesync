@@ -24,13 +24,4 @@ api_bp.route('/songs/<int:song_id>/purge', methods=['DELETE'])(token_required(So
 # Media Storage Streaming (Unprotected for simple HTML5 Audio tag streams)
 api_bp.route('/storage/<category>/<int:song_id>/<filename>', methods=['GET'])(SongController.stream_storage_file)
 api_bp.route('/test_ytdlp', methods=['GET'])(SongController.test_ytdlp)
-
-@api_bp.route('/reload_gunicorn', methods=['GET'])
-def reload_gunicorn():
-    import os
-    os._exit(0)
-
-@api_bp.route('/test_version', methods=['GET'])
-def test_version():
-    from flask import jsonify
-    return jsonify({"version": "v10_debug_check"}), 200
+api_bp.route('/test_version', methods=['GET'])(SongController.test_version)

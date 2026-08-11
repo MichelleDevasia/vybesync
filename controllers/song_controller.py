@@ -8,6 +8,10 @@ from config import Config
 
 class SongController:
     @staticmethod
+    def test_version():
+        return jsonify({"version": "v10_debug_check"}), 200
+
+    @staticmethod
     def test_ytdlp():
         q = request.args.get('q', 'Madhu Pakaroo')
         import scraper, traceback
