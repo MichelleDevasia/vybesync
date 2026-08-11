@@ -238,17 +238,25 @@ def download_audio(song_name):
 
     try:
         print(f"[*] Trying full-length YouTube download for: '{song_name}'...")
-        return download_audio_ytdlp(song_name, output_dir)
+        res = download_audio_ytdlp(song_name, output_dir)
+        res["source"] = "YouTube Full Track"
+        return res
     except Exception as err1:
         print(f"[!] Full YouTube download error: {err1}")
         try:
             print(f"[*] Trying full-length Saavn download for: '{song_name}'...")
-            return download_audio_saavn(song_name, output_dir)
+            res = download_audio_saavn(song_name, output_dir)
+            res["source"] = "JioSaavn Full Track"
+            return res
         except Exception as err2:
             print(f"[!] Saavn download error: {err2}")
             try:
                 print(f"[*] Fallback to iTunes track preview for: '{song_name}'...")
-                return download_audio_itunes(song_name, output_dir)
+                res = download_audio_itunes(song_name, output_dir)
+                res["source"] = "iTunes Preview"
+                return res
             except Exception as err3:
                 print(f"[!] iTunes fallback error: {err3}")
-                return create_instant_audio(song_name, "VibeSync Artist", output_dir)
+                res = create_instant_audio(song_name, "VibeSync Artist", output_dir)
+                res["source"] = f"Instant Engine (Errors: YT={str(err1)[:100]} | Saavn={str(err2)[:100]} | iTunes={str(err3)[:100]})"
+                return res
