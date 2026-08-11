@@ -19,7 +19,7 @@ def resolve_youtube_url(query):
         query_encoded = urllib.parse.quote(query)
         url = f"https://www.youtube.com/results?search_query={query_encoded}"
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36'}
-        resp = requests.get(url, headers=headers, timeout=10)
+        resp = requests.get(url, headers=headers, timeout=10, verify=False)
         video_ids = re.findall(r"watch\?v=(\w{11})", resp.text)
         if video_ids:
             return f"https://www.youtube.com/watch?v={video_ids[0]}"
@@ -141,11 +141,12 @@ def download_audio_ytdlp(song_name, output_dir='library'):
     print(f"[*] yt-dlp downloading full track target: {search_target}")
 
     ydl_opts = {
-        'format': '18/ba/b/bestaudio/best',
+        'format': '18/b/best',
         'ffmpeg_location': ffmpeg_exe,
         'ignoreerrors': False,
         'no_warnings': True,
         'nocheckcertificate': True,
+        'legacy_server_connect': True,
         'outtmpl': f'{output_dir}/%(title)s.%(ext)s',
         'noplaylist': True,
         'quiet': True,
@@ -184,53 +185,6 @@ def download_audio_ytdlp(song_name, output_dir='library'):
                 }
 
     raise Exception("yt-dlp could not produce WAV file")
-
-def download_audio_soundcloud(song_name, output_dir='library'):
-    import imageio_ffmpeg, subprocess
-    ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
-
-    search_target = f"scsearch1:{song_name}"
-    print(f"[*] SoundCloud searching full track target: {search_target}")
-
-    ydl_opts = {
-        'format': 'bestaudio/best',
-        'ffmpeg_location': ffmpeg_exe,
-        'ignoreerrors': False,
-        'no_warnings': True,
-        'nocheckcertificate': True,
-        'legacy_server_connect': True,
-        'outtmpl': f'{output_dir}/%(title)s.%(ext)s',
-        'noplaylist': True,
-        'quiet': True,
-    }
-
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(search_target, download=True)
-        if not info or 'entries' not in info or not info['entries']:
-            raise Exception("SoundCloud search returned no entries")
-
-        video_info = info['entries'][0]
-        downloaded_raw = ydl.prepare_filename(video_info)
-        title = clean_title(video_info.get('title', song_name))
-        artist = video_info.get('uploader', 'Unknown Artist').strip()
-
-        target_wav = os.path.join(output_dir, f"{title}.wav")
-
-        if os.path.exists(downloaded_raw):
-            res = subprocess.run(
-                [ffmpeg_exe, '-y', '-i', os.path.abspath(downloaded_raw), os.path.abspath(target_wav)],
-                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
-            )
-            if res.returncode == 0 and os.path.exists(target_wav):
-                if os.path.abspath(downloaded_raw) != os.path.abspath(target_wav) and os.path.exists(downloaded_raw):
-                    os.remove(downloaded_raw)
-                return {
-                    "mp3": target_wav,
-                    "title": title,
-                    "artist": artist
-                }
-
-    raise Exception("SoundCloud could not produce WAV file")
 
 def download_audio_saavn(song_name, output_dir='library'):
     import urllib.parse, requests, imageio_ffmpeg, subprocess
@@ -276,18 +230,13 @@ def download_audio(song_name):
     if not os.path.exists(output_dir): os.makedirs(output_dir)
 
     try:
-        print(f"[*] Trying full-length SoundCloud download for: '{song_name}'...")
-        return download_audio_soundcloud(song_name, output_dir)
+        print(f"[*] Trying full-length YouTube download for: '{song_name}'...")
+        return download_audio_ytdlp(song_name, output_dir)
     except Exception as err1:
-        print(f"[!] SoundCloud download error: {err1}")
+        print(f"[!] Full YouTube download error: {err1}")
         try:
-            print(f"[*] Trying full-length YouTube download for: '{song_name}'...")
-            return download_audio_ytdlp(song_name, output_dir)
+            print(f"[*] Fallback to iTunes track preview for: '{song_name}'...")
+            return download_audio_itunes(song_name, output_dir)
         except Exception as err2:
-            print(f"[!] YouTube download error: {err2}")
-            try:
-                print(f"[*] Fallback to iTunes track preview for: '{song_name}'...")
-                return download_audio_itunes(song_name, output_dir)
-            except Exception as err3:
-                print(f"[!] iTunes fallback error: {err3}")
-                return create_instant_audio(song_name, "VibeSync Artist", output_dir)
+            print(f"[!] iTunes fallback error: {err2}")
+            return create_instant_audio(song_name, "VibeSync Artist", output_dir)
