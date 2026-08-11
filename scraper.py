@@ -134,46 +134,26 @@ def download_audio_pytubefix(song_name, output_dir='library'):
     raise Exception(f"Pytubefix clients failed: {str(last_err)}")
 
 def download_audio_ytdlp(song_name, output_dir='library'):
-    try:
-        import imageio_ffmpeg
-        ffmpeg_bin = imageio_ffmpeg.get_ffmpeg_exe()
-    except Exception:
-        ffmpeg_bin = None
+    import imageio_ffmpeg, subprocess
+    ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
+
+    search_target = resolve_youtube_url(song_name)
+    print(f"[*] yt-dlp downloading full track target: {search_target}")
 
     ydl_opts = {
-        'format': 'ba/b/bestaudio/best',
-        'postprocessors': [{
-            'key': 'FFmpegExtractAudio',
-            'preferredcodec': 'mp3',
-            'preferredquality': '192',
-        }],
+        'format': '18/ba/b/bestaudio/best',
+        'ffmpeg_location': ffmpeg_exe,
         'ignoreerrors': False,
         'no_warnings': True,
         'nocheckcertificate': True,
-        'writethumbnail': False,
         'outtmpl': f'{output_dir}/%(title)s.%(ext)s',
         'noplaylist': True,
-        'quiet': False,
-        'http_headers': {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-            'Accept-Language': 'en-US,en;q=0.9',
-        },
-        'extractor_args': {
-            'youtube': {
-                'player_client': ['android', 'web']
-            }
-        }
+        'quiet': True,
     }
-
-    if ffmpeg_bin:
-        ydl_opts['ffmpeg_location'] = os.path.dirname(ffmpeg_bin)
-
-    search_target = resolve_youtube_url(song_name)
-    print(f"[*] yt-dlp downloading target: {search_target}")
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(search_target, download=True)
-        if info is None:
+        if not info:
             raise Exception("yt-dlp extract_info returned None")
 
         if 'entries' in info and info['entries']:
@@ -182,44 +162,41 @@ def download_audio_ytdlp(song_name, output_dir='library'):
         else:
             video_info = info
 
-        if not video_info:
-            raise Exception("No video info parsed")
+        downloaded_raw = ydl.prepare_filename(video_info)
+        title = clean_title(video_info.get('title', song_name))
+        artist = video_info.get('uploader', 'Unknown Artist').replace("- Topic", "").strip()
 
-        raw_path = ydl.prepare_filename(video_info)
-        base_path = os.path.splitext(raw_path)[0]
-        actual_mp3_path = base_path + ".mp3"
+        target_wav = os.path.join(output_dir, f"{title}.wav")
 
-        simple_name = clean_title(video_info.get('title', 'Song'))
-        new_mp3_path = os.path.join(output_dir, f"{simple_name}.mp3")
+        # Convert downloaded file (MP4/WebM/MP3) to standard WAV using imageio_ffmpeg
+        if os.path.exists(downloaded_raw):
+            res = subprocess.run(
+                [ffmpeg_exe, '-y', '-i', os.path.abspath(downloaded_raw), os.path.abspath(target_wav)],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+            )
+            if res.returncode == 0 and os.path.exists(target_wav):
+                if os.path.abspath(downloaded_raw) != os.path.abspath(target_wav) and os.path.exists(downloaded_raw):
+                    os.remove(downloaded_raw)
+                return {
+                    "mp3": target_wav,
+                    "title": title,
+                    "artist": artist
+                }
 
-        found_mp3 = None
-        if os.path.exists(actual_mp3_path):
-            os.replace(actual_mp3_path, new_mp3_path)
-            found_mp3 = new_mp3_path
-        elif os.path.exists(raw_path):
-            os.replace(raw_path, new_mp3_path)
-            found_mp3 = new_mp3_path
-        else:
-            for f in os.listdir(output_dir):
-                if f.endswith('.mp3') and not f.startswith('karaoke_'):
-                    found_mp3 = os.path.join(output_dir, f)
-                    break
-
-        if not found_mp3 or not os.path.exists(found_mp3):
-            raise Exception("yt-dlp did not produce an MP3 file on disk")
-
-        return {
-            "mp3": found_mp3,
-            "title": simple_name,
-            "artist": video_info.get('uploader', '').replace("- Topic", "").strip()
-        }
+    raise Exception("yt-dlp could not produce WAV file")
 
 def download_audio(song_name):
     output_dir = 'library'
     if not os.path.exists(output_dir): os.makedirs(output_dir)
 
     try:
-        return download_audio_itunes(song_name, output_dir)
-    except Exception as err:
-        print(f"[!] Scraper fallback: {err}")
-        return create_instant_audio(song_name, "VibeSync Artist", output_dir)
+        print(f"[*] Trying full-length YouTube download for: '{song_name}'...")
+        return download_audio_ytdlp(song_name, output_dir)
+    except Exception as err1:
+        print(f"[!] Full YouTube download fallback: {err1}")
+        try:
+            print(f"[*] Fallback to iTunes track preview for: '{song_name}'...")
+            return download_audio_itunes(song_name, output_dir)
+        except Exception as err2:
+            print(f"[!] iTunes fallback error: {err2}")
+            return create_instant_audio(song_name, "VibeSync Artist", output_dir)
