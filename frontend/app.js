@@ -765,7 +765,11 @@ async function startGeneration() {
             }
         } catch (err) {
             clearInterval(progressTimer);
-            showToast('Network error: ' + err.message, 'error');
+            if (err.message && (err.message.includes('fetch') || err.message.includes('Network'))) {
+                showToast('Server connecting... If Render backend is sleeping or paused, please click Manual Deploy on Render.', 'error');
+            } else {
+                showToast('Network error: ' + err.message, 'error');
+            }
             resetGeneratorState();
         }
     }, 1200);
