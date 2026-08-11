@@ -28,7 +28,7 @@ def get_lyrics_and_metadata(title, vocal_path=None):
         "lyrics": f"Sing along to {clean_title}! (VibeSync Studio Karaoke Track)",
         "singer": "Featured Artist",
         "composer": "VibeSync Studio",
-        "source": "Instant VibeSync Engine"
+        "source": "BUILD_VERSION_2026_08_11_v9"
     }
 
 def get_artist_info(artist_name):
