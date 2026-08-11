@@ -39,6 +39,17 @@ def clean_title(text):
 def resolve_youtube_url(query):
     if query.startswith(('http://', 'https://')):
         return query
+
+    # Try pytubefix search first (often bypasses yt-dlp search IP blocks)
+    try:
+        from pytubefix import Search
+        s = Search(query)
+        if s.videos:
+            print(f"[*] pytubefix found URL: {s.videos[0].watch_url}")
+            return s.videos[0].watch_url
+    except Exception as e:
+        print("[!] pytubefix search error:", e)
+
     try:
         ydl_opts = {
             'quiet': True,
@@ -320,6 +331,18 @@ def download_audio(song_name):
         except Exception as err1:
             print(f"[!] Saavn timed out or failed (15.0s limit): {err1}")
             err_messages.append("SaavnTimeout")
+
+    # Try YouTube fallback using pytubefix resolution
+    try:
+        print(f"[*] Trying YouTube Fallback for: '{song_name}'...")
+        yt_url = resolve_youtube_url(song_name)
+        if yt_url and yt_url.startswith(('http://', 'https://')):
+            res = download_audio_ytdlp(yt_url, output_dir)
+            res["source"] = "YouTube Fallback"
+            return res
+    except Exception as err2:
+        print(f"[!] YouTube fallback error: {err2}")
+        err_messages.append("YouTubeFallbackError")
 
     print(f"[*] Fallback to instant audio engine for: '{song_name}'...")
     res = create_instant_audio(song_name, "VibeSync Studio", output_dir)
