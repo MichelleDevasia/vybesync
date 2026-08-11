@@ -310,14 +310,16 @@ def download_audio(song_name):
             print(f"[!] Direct YouTube URL download error: {err0}")
             err_messages.append(f"YouTubeURL ({str(err0)[:60]})")
 
-    try:
-        print(f"[*] Trying full-length Saavn download for: '{song_name}'...")
-        res = download_audio_saavn(song_name, output_dir)
-        res["source"] = "JioSaavn Full Track"
-        return res
-    except Exception as err1:
-        print(f"[!] Saavn download error: {err1}")
-        err_messages.append(f"Saavn ({str(err1)[:60]})")
+    import concurrent.futures
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+        future = executor.submit(download_audio_saavn, song_name, output_dir)
+        try:
+            res = future.result(timeout=1.8)
+            res["source"] = "JioSaavn Full Track"
+            return res
+        except Exception as err1:
+            print(f"[!] Saavn timed out or failed (1.8s limit): {err1}")
+            err_messages.append("SaavnTimeout")
 
     print(f"[*] Fallback to instant audio engine for: '{song_name}'...")
     res = create_instant_audio(song_name, "VibeSync Studio", output_dir)
