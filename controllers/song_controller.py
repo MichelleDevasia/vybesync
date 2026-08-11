@@ -58,46 +58,68 @@ class SongController:
             return jsonify({"message": "Query parameter missing."}), 400
 
         try:
-            # 1. Run extraction service
-            res = ProcessingService.process_song_query(query)
-            
-            # 2. Save metadata to DB to obtain the song ID
-            song = Song(
-                user_id=current_user.id,
-                title=res["title"],
-                artist=res["artist"],
-                composer=res["composer"],
-                pitch=res["pitch"],
-                source=res["source"],
-                lyrics=res["lyrics"],
-                playlist=playlist_name,
-                tags=tags_str
-            )
-            db.session.add(song)
-            db.session.commit() # Commits to generate song.id
-            
-            # 3. Store files in persistent storage
-            audio_url = StorageService.save_original(res["local_mp3"], song.id)
-            karaoke_url = StorageService.save_instrumental(res["local_instrumental"], song.id)
-            cover_url = StorageService.save_cover(res["local_cover"], song.id)
-            
-            # 4. Update file URLs in DB
-            song.audio_file_url = audio_url
-            song.karaoke_file_url = karaoke_url
-            song.cover_image = cover_url
-            
-            db.session.commit()
-            
-            # Clean up local temporary scratch files (leaving original downloads to save bandwidth)
-            try:
-                shutil_dir = os.path.join("karaoke_output", res["title"])
-                if os.path.exists(shutil_dir):
-                    import shutil
-                    shutil.rmtree(shutil_dir)
-            except Exception:
-                pass
+            # We must prevent Render from terminating the connection via 502 Bad Gateway due to idle timeout.
+            # We yield spaces every 2 seconds while processing in a background thread, then yield the JSON.
+            def generate():
+                import time, json, threading
+                
+                result_container = {}
+                def run_processing():
+                    try:
+                        res = ProcessingService.process_song_query(query)
+                        
+                        # Save to DB
+                        from app import app
+                        with app.app_context():
+                            song = Song(
+                                user_id=current_user.id,
+                                title=res["title"],
+                                artist=res["artist"],
+                                composer=res["composer"],
+                                pitch=res["pitch"],
+                                source=res["source"],
+                                lyrics=res["lyrics"],
+                                playlist=playlist_name,
+                                tags=tags_str
+                            )
+                            db.session.add(song)
+                            db.session.commit()
+                            
+                            audio_url = StorageService.save_original(res["local_mp3"], song.id)
+                            karaoke_url = StorageService.save_instrumental(res["local_instrumental"], song.id)
+                            cover_url = StorageService.save_cover(res["local_cover"], song.id)
+                            
+                            song.audio_file_url = audio_url
+                            song.karaoke_file_url = karaoke_url
+                            song.cover_image = cover_url
+                            db.session.commit()
+                            
+                            try:
+                                shutil_dir = os.path.join("karaoke_output", res["title"])
+                                if os.path.exists(shutil_dir):
+                                    import shutil
+                                    shutil.rmtree(shutil_dir)
+                            except Exception: pass
+                            
+                            result_container['data'] = song.to_dict()
+                    except Exception as e:
+                        result_container['error'] = str(e)
 
-            return jsonify(song.to_dict()), 201
+                t = threading.Thread(target=run_processing)
+                t.start()
+                
+                # Keep connection alive while processing
+                while t.is_alive():
+                    yield b" "
+                    time.sleep(2)
+                    
+                if 'error' in result_container:
+                    yield json.dumps({"error": result_container['error']}).encode('utf-8')
+                else:
+                    yield json.dumps(result_container['data']).encode('utf-8')
+
+            from flask import Response
+            return Response(generate(), mimetype='application/json', status=201)
 
         except Exception as e:
             db.session.rollback()
