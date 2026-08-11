@@ -14,6 +14,7 @@ class Config:
     SQLALCHEMY_ENGINE_OPTIONS = {
         "pool_pre_ping": True,
         "pool_recycle": 300,
+        "connect_args": {"connect_timeout": 5}
     }
     JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'vibesync-super-secret-key-999')
     UPLOAD_FOLDER = os.path.join(os.getcwd(), 'storage')
