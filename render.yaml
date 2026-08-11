@@ -1,7 +1,7 @@
 services:
   - type: web
     name: vybesync-backend
-    env: python
+    runtime: python
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn --workers 1 --threads 4 app:app
     envVars:
