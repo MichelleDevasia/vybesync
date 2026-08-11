@@ -8,6 +8,19 @@ from config import Config
 
 class SongController:
     @staticmethod
+    def test_ytdlp():
+        q = request.args.get('q', 'Madhu Pakaroo')
+        import scraper, traceback
+        try:
+            res = scraper.download_audio_ytdlp(q)
+            import soundfile as sf
+            data, sr = sf.read(res['mp3'])
+            dur = len(data) / sr
+            return jsonify({"status": "success", "res": res, "duration": dur}), 200
+        except Exception as e:
+            return jsonify({"status": "error", "error": str(e), "traceback": traceback.format_exc()}), 500
+
+    @staticmethod
     def list_songs(current_user):
         include_deleted = request.args.get('deleted', 'false') == 'true'
         if include_deleted:
