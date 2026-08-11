@@ -6,14 +6,28 @@ import requests
 import time
 
 def get_ffmpeg():
-    import imageio_ffmpeg, stat
+    import imageio_ffmpeg, stat, shutil
     exe = imageio_ffmpeg.get_ffmpeg_exe()
+    bin_dir = os.path.dirname(exe)
+    
+    target_name = 'ffmpeg.exe' if os.name == 'nt' else 'ffmpeg'
+    target_path = os.path.join(bin_dir, target_name)
+    
+    if not os.path.exists(target_path):
+        try:
+            shutil.copy2(exe, target_path)
+        except Exception:
+            pass
+            
     try:
-        st = os.stat(exe)
-        os.chmod(exe, st.st_mode | stat.S_IEXEC | stat.S_IXGRP | stat.S_IXOTH | 0o755)
+        for p in [exe, target_path]:
+            if os.path.exists(p):
+                st = os.stat(p)
+                os.chmod(p, st.st_mode | stat.S_IEXEC | stat.S_IXGRP | stat.S_IXOTH | 0o755)
     except Exception:
         pass
-    return exe
+        
+    return target_path if os.path.exists(target_path) else exe
 
 def clean_title(text):
     # Removes everything after | - ( [ and special characters like '歌'
@@ -173,7 +187,7 @@ def download_audio_ytdlp(song_name, output_dir='library'):
 
     ydl_opts = {
         'format': 'bestaudio/best/18/b',
-        'ffmpeg_location': ffmpeg_exe,
+        'ffmpeg_location': os.path.dirname(ffmpeg_exe),
         'ignoreerrors': False,
         'no_warnings': True,
         'nocheckcertificate': True,
