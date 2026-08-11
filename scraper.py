@@ -61,14 +61,40 @@ def download_audio_itunes(song_name, output_dir='library'):
         query_encoded = urllib.parse.quote(song_name)
         url = f"https://itunes.apple.com/search?term={query_encoded}&media=music&limit=1"
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
-        resp = requests.get(url, headers=headers, timeout=1.5, verify=False)
+        resp = requests.get(url, headers=headers, timeout=5, verify=False)
         if resp.status_code == 200:
             data = resp.json()
             if data.get('resultCount', 0) > 0:
                 track = data['results'][0]
                 title = clean_title(track.get('trackName', song_name))
                 artist = track.get('artistName', 'Unknown')
+                preview_url = track.get('previewUrl')
                 print(f"[+] Found track on iTunes: '{title}' by '{artist}'")
+                
+                if preview_url:
+                    print(f"[*] Downloading real audio preview from iTunes...")
+                    m4a_path = os.path.join(output_dir, f"temp_{title}.m4a")
+                    wav_path = os.path.join(output_dir, f"{title}.wav")
+                    
+                    audio_bytes = requests.get(preview_url, headers=headers, timeout=10).content
+                    with open(m4a_path, 'wb') as f:
+                        f.write(audio_bytes)
+                    
+                    # Convert m4a to wav using imageio_ffmpeg
+                    try:
+                        import imageio_ffmpeg, subprocess
+                        ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
+                        subprocess.run([ffmpeg_exe, '-y', '-i', m4a_path, wav_path], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                        if os.path.exists(m4a_path): os.remove(m4a_path)
+                        return {
+                            "mp3": wav_path,
+                            "title": title,
+                            "artist": artist
+                        }
+                    except Exception as conv_err:
+                        print(f"[!] Conversion error: {conv_err}")
+                        if os.path.exists(m4a_path): os.remove(m4a_path)
+                        
                 return create_instant_audio(title, artist, output_dir)
     except Exception as err:
         print(f"[!] iTunes lookup error: {err}")
