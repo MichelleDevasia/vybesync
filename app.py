@@ -32,10 +32,18 @@ with app.app_context():
         print(f"[!] Primary DB connection error: {db_err}")
         print("[*] Falling back to local SQLite database...")
         app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///karaoke_studio.db'
-        db.engine.dispose()
-        db.init_app(app)
-        db.create_all()
-    StorageService.initialize()  # Create folders for local storage fallback
+        try:
+            db.engine.dispose()
+            from sqlalchemy import create_engine
+            db.engine = create_engine('sqlite:///karaoke_studio.db')
+            db.create_all()
+            print("[+] Successfully initialized local SQLite fallback database.")
+        except Exception as fallback_err:
+            print(f"[!] SQLite fallback error: {fallback_err}")
+    try:
+        StorageService.initialize()  # Create folders for local storage fallback
+    except Exception as st_err:
+        print(f"[!] Storage initialization warning: {st_err}")
 
 # Register Blueprints
 app.register_blueprint(api_bp, url_prefix='/api')
