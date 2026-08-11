@@ -250,17 +250,23 @@ def download_audio_saavn(song_name, output_dir='library'):
     
     resp = requests.get(url, headers=headers, timeout=10, verify=False)
     if resp.status_code == 200:
-        results = resp.json()
+        data = resp.json()
+        results = data.get('data', {}).get('results', []) if isinstance(data, dict) and 'data' in data else data
         if isinstance(results, list) and len(results) > 0:
-            track = results[0]
-            media_url = track.get('url')
-            title = clean_title(track.get('title', song_name))
-            artist = track.get('subtitle', 'Featured Artist')
+            song_data = results[0]
+            title = clean_title(song_data.get('title') or song_data.get('name', song_name))
+            artist = song_data.get('subtitle') or song_data.get('artists') or song_data.get('primaryArtists', 'JioSaavn Artist')
             
-            if media_url:
+            media_url = song_data.get('url') or song_data.get('media_url')
+            if not media_url and 'downloadUrl' in song_data:
+                dl_list = song_data.get('downloadUrl', [])
+                if isinstance(dl_list, list) and dl_list:
+                    media_url = dl_list[-1].get('url') if isinstance(dl_list[-1], dict) else dl_list[-1]
+
+            if media_url and media_url.startswith(('http://', 'https://')):
                 print(f"[+] Found full track on Saavn: '{title}' by '{artist}'")
-                raw_mp4 = os.path.join(output_dir, f"temp_{title}.mp4")
                 target_wav = os.path.join(output_dir, f"{title}.wav")
+                raw_mp4 = os.path.join(output_dir, "download_raw_saavn.mp4")
                 
                 audio_bytes = requests.get(media_url, headers=headers, timeout=15, verify=False).content
                 with open(raw_mp4, 'wb') as f:
@@ -271,7 +277,9 @@ def download_audio_saavn(song_name, output_dir='library'):
                     [ffmpeg_exe, '-y', '-i', os.path.abspath(raw_mp4), os.path.abspath(target_wav)],
                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
                 )
-                if os.path.exists(raw_mp4): os.remove(raw_mp4)
+                if os.path.exists(raw_mp4):
+                    try: os.remove(raw_mp4)
+                    except Exception: pass
                 
                 if res.returncode == 0 and os.path.exists(target_wav):
                     return {
