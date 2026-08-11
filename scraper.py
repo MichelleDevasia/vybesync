@@ -311,30 +311,24 @@ def download_audio(song_name):
             err_messages.append(f"YouTubeURL ({str(err0)[:60]})")
 
     try:
+        print(f"[*] Trying iTunes engine for: '{song_name}'...")
+        res = download_audio_itunes(song_name, output_dir)
+        res["source"] = "iTunes Track Engine"
+        return res
+    except Exception as err1:
+        err_msg1 = f"iTunes ({str(err1)[:60]})"
+        err_messages.append(err_msg1)
+        print(f"[!] iTunes error: {err1}")
+
+    try:
         print(f"[*] Trying full-length Saavn download for: '{song_name}'...")
         res = download_audio_saavn(song_name, output_dir)
         res["source"] = "JioSaavn Full Track"
         return res
-    except Exception as err1:
-        err_msg1 = f"Saavn ({str(err1)[:60]})"
-        err_messages.append(err_msg1)
-        print(f"[!] Saavn download error: {err1}")
-
-    try:
-        print(f"[*] Trying full-length YouTube download for: '{song_name}'...")
-        res = download_audio_ytdlp(song_name, output_dir)
-        res["source"] = "YouTube Full Track"
-        return res
     except Exception as err2:
-        err_msg2 = f"YouTube ({str(err2)[:60]})"
+        err_msg2 = f"Saavn ({str(err2)[:60]})"
         err_messages.append(err_msg2)
-        print(f"[!] Full YouTube download error: {err2}")
-
-    try:
-        print(f"[*] Fallback to iTunes track preview for: '{song_name}'...")
-        res = download_audio_itunes(song_name, output_dir)
-        res["source"] = f"iTunes Preview (29s) [{'; '.join(err_messages)}]"
-        return res
+        print(f"[!] Saavn download error: {err2}")
     except Exception as err3:
         err_msg3 = f"iTunes ({str(err3)[:60]})"
         err_messages.append(err_msg3)
