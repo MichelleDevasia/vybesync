@@ -227,6 +227,11 @@ def download_audio_ytdlp(song_name, output_dir='library'):
             downloaded_raw = raw_files[0]
             target_wav = os.path.join(output_dir, f"{title}.wav")
 
+            if os.path.exists(target_wav):
+                try: os.remove(target_wav)
+                except Exception:
+                    target_wav = os.path.join(output_dir, f"{title}_{int(time.time())}.wav")
+
             res = subprocess.run(
                 [ffmpeg_exe, '-y', '-i', os.path.abspath(downloaded_raw), os.path.abspath(target_wav)],
                 capture_output=True, text=True
@@ -271,6 +276,10 @@ def download_audio_saavn(song_name, output_dir='library'):
             if media_url and media_url.startswith(('http://', 'https://')):
                 print(f"[+] Found full track on Saavn: '{title}' by '{artist}'")
                 target_wav = os.path.join(output_dir, f"{title}.wav")
+                if os.path.exists(target_wav):
+                    try: os.remove(target_wav)
+                    except Exception:
+                        target_wav = os.path.join(output_dir, f"{title}_{int(time.time())}.wav")
                 raw_mp4 = os.path.join(output_dir, "download_raw_saavn.mp4")
                 
                 audio_bytes = requests.get(media_url, headers=headers, timeout=15, verify=False).content
