@@ -6,11 +6,13 @@ sqlalchemy==1.4.47
 pyjwt==2.13.0
 psycopg2-binary==2.9.9
 Werkzeug==2.2.3
+gunicorn
 
 # Audio processing
 soundfile==0.12.1
 numpy==1.26.4
 librosa==0.11.0
+imageio-ffmpeg
 
 # Web Scraping & Integrations
 yt-dlp
