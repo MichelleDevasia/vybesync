@@ -20,3 +20,4 @@ requests==2.33.1
 lyricsgenius==3.7.3
 wikipedia==1.4.0
 musicbrainzngs==0.7.1
+# VibeSync Audio Engine v2.0 - Forced Restart
