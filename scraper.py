@@ -45,7 +45,7 @@ def resolve_youtube_url(query):
             'nocheckcertificate': True,
             'legacy_server_connect': True,
             'socket_timeout': 3,
-            'retries': 1,
+            'retries': 0,
             'extract_flat': True,
             'extractor_args': {'youtube': {'player_client': ['tv', 'android_vr', 'web_embedded', 'mweb', 'android', 'web']}}
         }
@@ -62,18 +62,7 @@ def resolve_youtube_url(query):
     except Exception as e:
         print("[!] yt-dlp flat resolution error:", e)
 
-    try:
-        query_encoded = urllib.parse.quote(query)
-        url = f"https://www.youtube.com/results?search_query={query_encoded}"
-        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36'}
-        resp = requests.get(url, headers=headers, timeout=10, verify=False)
-        video_ids = re.findall(r"watch\?v=(\w{11})", resp.text)
-        if video_ids:
-            return f"https://www.youtube.com/watch?v={video_ids[0]}"
-    except Exception as e:
-        print("[!] HTML resolution error:", e)
-
-    return f"ytsearch1:{query}"
+    return query
 
 def create_instant_audio(title, artist, output_dir='library'):
     """Generates a clean 3-second stereo WAV audio file in 0.001 seconds using stdlib."""
@@ -186,6 +175,8 @@ def download_audio_ytdlp(song_name, output_dir='library'):
     ffmpeg_exe = get_ffmpeg()
 
     search_target = resolve_youtube_url(song_name)
+    if not search_target.startswith(('http://', 'https://')):
+        raise Exception(f"yt-dlp search requires direct YouTube URL for '{song_name}'")
     print(f"[*] yt-dlp downloading full track target: {search_target}")
 
     for old_raw in glob.glob(os.path.join(output_dir, "download_raw.*")):
@@ -308,6 +299,16 @@ def download_audio(song_name):
     if not os.path.exists(output_dir): os.makedirs(output_dir)
 
     err_messages = []
+
+    if song_name.startswith(('http://', 'https://')):
+        try:
+            print(f"[*] Direct YouTube URL detected: '{song_name}'...")
+            res = download_audio_ytdlp(song_name, output_dir)
+            res["source"] = "YouTube Full Track"
+            return res
+        except Exception as err0:
+            print(f"[!] Direct YouTube URL download error: {err0}")
+            err_messages.append(f"YouTubeURL ({str(err0)[:60]})")
 
     try:
         print(f"[*] Trying full-length Saavn download for: '{song_name}'...")
