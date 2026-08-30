@@ -56,17 +56,6 @@ def serve_index():
     resp.headers['X-App-Version'] = 'v11_deploy_check'
     return resp
 
-@app.route('/api/status/<task_id>', methods=['GET'])
-@jwt_required()
-def get_task_status(task_id):
-    return SongController.get_task_status(task_id)
-
-@app.route('/api/process', methods=['POST'])
-@jwt_required()
-def process_song():
-    current_user = User.query.get(get_jwt_identity())
-    return SongController.process_song(current_user)
-
 @app.route('/<path:path>')
 def serve_static(path):
     return send_from_directory('frontend', path)

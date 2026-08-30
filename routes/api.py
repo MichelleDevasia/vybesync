@@ -11,6 +11,7 @@ api_bp.route('/auth/login', methods=['POST'])(AuthController.login)
 api_bp.route('/auth/profile', methods=['GET'])(token_required(AuthController.get_profile))
 
 # Song Management Routes
+api_bp.route('/status/<task_id>', methods=['GET'])(token_required(lambda user, task_id: SongController.get_task_status(task_id)))
 api_bp.route('/songs', methods=['GET'])(token_required(SongController.list_songs))
 api_bp.route('/process', methods=['POST'])(token_required(SongController.process_song))
 api_bp.route('/songs/<int:song_id>/favourite', methods=['POST'])(token_required(SongController.toggle_favourite))
