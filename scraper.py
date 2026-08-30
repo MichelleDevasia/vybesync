@@ -287,11 +287,11 @@ def download_audio(song_name):
     executor1 = concurrent.futures.ThreadPoolExecutor(max_workers=1)
     future = executor1.submit(download_audio_saavn, song_name, output_dir)
     try:
-        res = future.result(timeout=4.0)
+        res = future.result(timeout=45.0)
         res["source"] = "JioSaavn Full Track"
         return res
     except Exception as err1:
-        print(f"[!] Saavn timed out or failed (4.0s limit): {err1}")
+        print(f"[!] Saavn timed out or failed: {err1}")
         err_messages.append("SaavnTimeout")
 
     # Try YouTube fallback using pytubefix resolution
@@ -305,11 +305,11 @@ def download_audio(song_name):
     future_yt = executor2.submit(yt_fallback)
     try:
         print(f"[*] Trying YouTube Fallback for: '{song_name}'...")
-        res = future_yt.result(timeout=6.0)
+        res = future_yt.result(timeout=45.0)
         res["source"] = "YouTube Fallback"
         return res
     except Exception as err2:
-        print(f"[!] YouTube fallback error (6.0s limit): {err2}")
+        print(f"[!] YouTube fallback error: {err2}")
         err_messages.append("YouTubeFallbackError")
 
     print(f"[*] Fallback to instant audio engine for: '{song_name}'...")
