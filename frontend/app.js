@@ -950,10 +950,12 @@ function stopPlayback() {
 function restartPlayback() {
     originalAudio.currentTime = 0;
     instrumentalAudio.currentTime = 0;
+    originalAudio.play().catch(e => console.log('Original play aborted:', e));
+    instrumentalAudio.play().catch(e => console.log('Instrumental play aborted:', e));
+    isPlaying = true;
+    document.getElementById('btn-play').innerHTML = '<i class="fa-solid fa-pause"></i>';
+    document.getElementById('player-cd').classList.add('playing');
     updateProgress();
-    if (!isPlaying) {
-        togglePlayback();
-    }
 }
 
 function toggleMute() {

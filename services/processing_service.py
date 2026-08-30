@@ -50,7 +50,7 @@ class ProcessingService:
             "source": source,
             "lyrics": lyrics,
             "pitch": pitch,
-            "local_mp3": mp3_path,
+            "local_mp3": vocal_path,
             "local_instrumental": instrumental_path,
             "local_cover": cover_path
         }

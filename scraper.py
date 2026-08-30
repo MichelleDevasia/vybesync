@@ -243,6 +243,19 @@ def download_audio_saavn(song_name, output_dir='library'):
             title = clean_title(song_data.get('title') or song_data.get('name', song_name))
             artist = song_data.get('subtitle') or song_data.get('artists') or song_data.get('primaryArtists', 'JioSaavn Artist')
             
+            # Query match validation
+            query_words = [w.lower() for w in song_name.split() if len(w) > 2]
+            title_lower = title.lower()
+            artist_lower = str(artist).lower()
+            match_found = False
+            for qw in query_words:
+                if qw in title_lower or qw in artist_lower:
+                    match_found = True
+                    break
+            if query_words and not match_found:
+                print(f"[!] JioSaavn result '{title}' by '{artist}' does not match query '{song_name}'. Rejecting.")
+                raise Exception("Saavn search result did not match query")
+            
             media_url = song_data.get('url') or song_data.get('media_url')
             if not media_url and 'downloadUrl' in song_data:
                 dl_list = song_data.get('downloadUrl', [])
