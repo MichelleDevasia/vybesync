@@ -251,8 +251,6 @@ def download_audio_saavn(song_name, output_dir='library'):
 
             if media_url and media_url.startswith(('http://', 'https://')):
                 print(f"[+] Found full track on Saavn: '{title}' by '{artist}'")
-                target_wav = os.path.join(output_dir, f"{title}.wav")
-                if os.path.exists(target_wav):
                 raw_mp4 = os.path.join(output_dir, f"{title}.mp4")
                 
                 audio_bytes = requests.get(media_url, headers=headers, timeout=15, verify=False).content
