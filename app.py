@@ -33,9 +33,13 @@ with app.app_context():
         print("[*] Falling back to local SQLite database...")
         app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///karaoke_studio.db'
         try:
-            db.engine.dispose()
-            from sqlalchemy import create_engine
-            db.engine = create_engine('sqlite:///karaoke_studio.db')
+            if 'sqlalchemy' in app.extensions:
+                try:
+                    db.get_engine(app).dispose()
+                except Exception:
+                    pass
+                del app.extensions['sqlalchemy']
+            db.init_app(app)
             db.create_all()
             print("[+] Successfully initialized local SQLite fallback database.")
         except Exception as fallback_err:
