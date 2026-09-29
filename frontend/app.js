@@ -739,10 +739,18 @@ async function startGeneration() {
             let data = await response.json();
             
             // Polling for async background processing
+            const taskId = data.task_id;
+            if (!taskId) {
+                showToast('Separation failed: Invalid response from server.', 'error');
+                resetGeneratorState();
+                clearInterval(progressTimer);
+                return;
+            }
+            
             while (response.status === 202) {
                 loadingStatus.innerText = 'PROCESSING AUDIO (This may take a minute)...';
-                await new Promise(r => setTimeout(r, 3000));
-                response = await fetch(`${API_BASE}/api/status/${data.task_id}`, {
+                await new Promise(r => setTimeout(r, 2000));
+                response = await fetch(`${API_BASE}/api/status/${taskId}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 data = await response.json();
@@ -887,8 +895,9 @@ function togglePlayback() {
         isPlaying = false;
         clearInterval(updateInterval);
     } else {
-        originalAudio.play();
-        instrumentalAudio.play();
+        originalAudio.currentTime = instrumentalAudio.currentTime;
+        originalAudio.play().catch(e => console.log('Vocals play error:', e));
+        instrumentalAudio.play().catch(e => console.log('Instrumental play error:', e));
         playBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
         spinCd.classList.add('playing');
         isPlaying = true;
@@ -898,10 +907,15 @@ function togglePlayback() {
 }
 
 function updateProgress() {
-    if (!instrumentalAudio.duration) return;
+    const dur = instrumentalAudio.duration || originalAudio.duration;
+    if (!dur) return;
     
     const curr = instrumentalAudio.currentTime;
-    const dur = instrumentalAudio.duration;
+    
+    // Keep vocal audio track synchronized with instrumental timeline
+    if (Math.abs(originalAudio.currentTime - curr) > 0.15) {
+        originalAudio.currentTime = curr;
+    }
     
     const percent = (curr / dur) * 100;
     document.getElementById('playback-progress').value = percent;

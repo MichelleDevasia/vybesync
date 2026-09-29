@@ -29,7 +29,10 @@ class ProcessingService:
             raise ValueError("AI stem vocal separation failed.")
 
         # 3. Lyrics & Metadata
-        vocal_path = f"karaoke_output/{title}/vocals.wav"
+        song_folder_name = os.path.splitext(os.path.basename(mp3_path))[0]
+        vocal_path = os.path.join("karaoke_output", song_folder_name, "vocals.wav")
+        instrumental_path = os.path.join("karaoke_output", song_folder_name, "accompaniment.wav")
+        
         meta = metadata.get_lyrics_and_metadata(title, vocal_path)
         
         singer = meta['singer'] if meta else data['artist']
@@ -40,8 +43,6 @@ class ProcessingService:
         # Key/scale detection
         theory = metadata.get_theory_data(mp3_path)
         pitch = theory.get("pitch", "Unknown")
-        
-        instrumental_path = f"karaoke_output/{title}/accompaniment.wav"
         
         return {
             "title": title,

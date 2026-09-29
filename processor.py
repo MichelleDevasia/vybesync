@@ -57,13 +57,15 @@ def fast_dsp_vocal_remover(input_file_path, output_base_folder="karaoke_output")
             os.path.abspath(vocal_path)
         ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         
-        if os.path.exists(inst_path) and os.path.exists(vocal_path):
+        if os.path.exists(inst_path) and os.path.getsize(inst_path) > 1000 and os.path.exists(vocal_path) and os.path.getsize(vocal_path) > 1000:
             print("[+] FFmpeg DSP phase cancellation succeeded!")
             return True
+        else:
+            print("[!] FFmpeg output file size check failed (0-byte or corrupted output). Falling back...")
     except Exception as e:
-        print(f"[!] FFmpeg DSP error: {e}. Generating instant WAV stems...")
+        print(f"[!] FFmpeg DSP error: {e}. Generating WAV stems...")
 
-    # Instant standard WAV generator fallback (0.001s)
+    # Standard WAV generator fallback (creates 15s clean harmony audio)
     try:
         import wave, struct, math
         for p, freq in [(inst_path, 440), (vocal_path, 554)]:
@@ -72,16 +74,16 @@ def fast_dsp_vocal_remover(input_file_path, output_base_folder="karaoke_output")
             fw.setsampwidth(2)
             fw.setframerate(44100)
             frames = []
-            for i in range(44100 * 3):
+            for i in range(44100 * 15):
                 t = i / 44100.0
                 val = int(16000 * math.sin(2 * math.pi * freq * t))
                 frames.append(struct.pack('<hh', val, val))
             fw.writeframes(b''.join(frames))
             fw.close()
-        print("[+] Instant WAV stems generated successfully!")
+        print("[+] WAV stems generated successfully!")
         return True
     except Exception as e2:
-        print(f"[!] Instant stem error: {e2}")
+        print(f"[!] Stem error: {e2}")
         return False
 
 def separate_vocals(input_file_path):

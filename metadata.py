@@ -6,7 +6,6 @@ except ImportError:
     from typing_extensions import Self
     typing.Self = Self
 
-import librosa
 import numpy as np
 import lyricsgenius
 import wikipedia

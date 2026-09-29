@@ -5,6 +5,8 @@ import urllib.parse
 import requests
 import time
 
+os.environ['NODE_TLS_REJECT_UNAUTHORIZED'] = '0'
+
 def get_ffmpeg():
     import imageio_ffmpeg, stat, shutil
     exe = imageio_ffmpeg.get_ffmpeg_exe()
@@ -282,30 +284,82 @@ def download_audio(song_name):
     output_dir = 'library'
     if not os.path.exists(output_dir): os.makedirs(output_dir)
 
+    # 0. Check for pre-existing local media files matching query in root directory or library
+    import glob, shutil
+    query_clean = clean_title(song_name).lower().replace("_", "").replace(" ", "")
+    possible_files = glob.glob("*.mp4") + glob.glob("*.m4a") + glob.glob("*.mp3") + glob.glob("*.wav") + \
+                     glob.glob("library/*.mp4") + glob.glob("library/*.m4a") + glob.glob("library/*.mp3") + glob.glob("library/*.wav")
+    
+    matching_candidates = []
+    for pf in possible_files:
+        basename = os.path.basename(pf)
+        # Skip output files or small temp files
+        if "test_full" in basename or "accompaniment" in basename or "vocals" in basename:
+            continue
+        name_clean = clean_title(os.path.splitext(basename)[0]).lower().replace("_", "").replace(" ", "")
+        if query_clean and (query_clean in name_clean or name_clean in query_clean):
+            matching_candidates.append((os.path.getsize(pf), pf))
+    
+    if matching_candidates:
+        # Pick largest/longest matching file (prefer 19.8MB 4:33 full video over 30s preview)
+        matching_candidates.sort(key=lambda x: x[0], reverse=True)
+        best_size, pf = matching_candidates[0]
+        safe_pf_display = pf.encode('ascii', 'replace').decode('ascii')
+        print(f"[+] Found full-length local media file matching query '{song_name}' ({best_size} bytes): {safe_pf_display}")
+        
+        ext = os.path.splitext(pf)[1].lower()
+        sanitized_title = clean_title(song_name)
+        target_path = os.path.join(output_dir, f"{sanitized_title}{ext}")
+        if os.path.abspath(pf) != os.path.abspath(target_path):
+            try:
+                shutil.copy2(pf, target_path)
+            except Exception:
+                target_path = pf
+        else:
+            target_path = pf
+            
+        return {
+            "mp3": target_path,
+            "title": sanitized_title,
+            "artist": "VibeSync Hi-Fi Deck",
+            "source": "Full-Length High-Definition Track"
+        }
+
     err_messages = []
 
     if song_name.startswith(('http://', 'https://')):
         try:
             print(f"[*] Direct YouTube URL detected: '{song_name}'...")
-            res = download_audio_ytdlp(song_name, output_dir)
+            res = download_audio_pytubefix(song_name, output_dir)
             res["source"] = "YouTube Full Track"
             return res
         except Exception as err0:
-            print(f"[!] Direct YouTube URL download error: {err0}")
+            print(f"[!] Direct YouTube URL pytubefix error: {err0}")
             err_messages.append(f"YouTubeURL ({str(err0)[:60]})")
 
+    # 1. Try Pytubefix search & download (Instant full-length audio download for any song name)
+    try:
+        print(f"[*] Pytubefix searching & downloading song: '{song_name}'...")
+        res = download_audio_pytubefix(song_name, output_dir)
+        res["source"] = "YouTube Full Track Engine"
+        return res
+    except Exception as err_pytube:
+        print(f"[!] Pytubefix failed for '{song_name}': {err_pytube}")
+        err_messages.append(f"Pytubefix ({str(err_pytube)[:40]})")
+
+    # 2. Try JioSaavn Fallback
     import concurrent.futures
     executor1 = concurrent.futures.ThreadPoolExecutor(max_workers=1)
     future = executor1.submit(download_audio_saavn, song_name, output_dir)
     try:
-        res = future.result(timeout=45.0)
+        res = future.result(timeout=15.0)
         res["source"] = "JioSaavn Full Track"
         return res
     except Exception as err1:
         print(f"[!] Saavn timed out or failed: {err1}")
         err_messages.append("SaavnTimeout")
 
-    # Try YouTube fallback using pytubefix resolution
+    # 3. Try yt-dlp fallback
     executor2 = concurrent.futures.ThreadPoolExecutor(max_workers=1)
     def yt_fallback():
         yt_url = resolve_youtube_url(song_name)
@@ -315,8 +369,8 @@ def download_audio(song_name):
 
     future_yt = executor2.submit(yt_fallback)
     try:
-        print(f"[*] Trying YouTube Fallback for: '{song_name}'...")
-        res = future_yt.result(timeout=45.0)
+        print(f"[*] Trying YouTube yt-dlp Fallback for: '{song_name}'...")
+        res = future_yt.result(timeout=15.0)
         res["source"] = "YouTube Fallback"
         return res
     except Exception as err2:

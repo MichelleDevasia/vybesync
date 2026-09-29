@@ -27,7 +27,7 @@ class SongController:
         elif task['status'] == 'error':
             return jsonify({"error": task['error']}), 500
         else:
-            return jsonify({"status": "processing"}), 202
+            return jsonify({"status": "processing", "task_id": task_id}), 202
 
     @staticmethod
     def test_process():
@@ -103,6 +103,9 @@ class SongController:
                     karaoke_url = StorageService.save_instrumental(res["local_instrumental"], song.id)
                     cover_url = StorageService.save_cover(res["local_cover"], song.id)
                     
+                    if not audio_url or not karaoke_url:
+                        raise ValueError(f"Failed to copy generated stem files from {res['local_mp3']}")
+
                     song.audio_file_url = audio_url
                     song.karaoke_file_url = karaoke_url
                     song.cover_image = cover_url
@@ -110,7 +113,7 @@ class SongController:
                     
                     try:
                         import os, shutil
-                        shutil_dir = os.path.join("karaoke_output", res["title"])
+                        shutil_dir = os.path.dirname(res["local_mp3"])
                         if os.path.exists(shutil_dir):
                             shutil.rmtree(shutil_dir)
                     except Exception: pass
@@ -129,7 +132,21 @@ class SongController:
         # Serve stored files from local UPLOAD_FOLDER
         path = os.path.join(Config.UPLOAD_FOLDER, category, str(song_id), filename)
         if os.path.exists(path):
-            mimetype = 'audio/mpeg' if category == 'originals' else ('audio/wav' if category == 'instrumentals' else 'image/jpeg')
+            ext = os.path.splitext(filename)[1].lower()
+            if ext == '.wav':
+                mimetype = 'audio/wav'
+            elif ext == '.mp3':
+                mimetype = 'audio/mpeg'
+            elif ext in ['.m4a', '.mp4', '.aac']:
+                mimetype = 'audio/mp4'
+            elif ext in ['.jpg', '.jpeg']:
+                mimetype = 'image/jpeg'
+            elif ext == '.png':
+                mimetype = 'image/png'
+            elif ext == '.webp':
+                mimetype = 'image/webp'
+            else:
+                mimetype = 'application/octet-stream'
             
             # Check if downloading
             as_attachment = request.args.get('download', 'false') == 'true'
