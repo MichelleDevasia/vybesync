@@ -1,4 +1,11 @@
-import os
+import os, ssl
+try:
+    ssl._create_default_https_context = ssl._create_unverified_context
+except Exception:
+    pass
+
+os.environ['NODE_TLS_REJECT_UNAUTHORIZED'] = '0'
+os.environ['PYTHONHTTPSVERIFY'] = '0'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['OMP_NUM_THREADS'] = '1'
 os.environ['TF_NUM_INTRAOP_THREADS'] = '1'

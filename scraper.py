@@ -1,11 +1,13 @@
-import yt_dlp
-import os
-import re
-import urllib.parse
-import requests
-import time
+import ssl, os, re, urllib.parse, requests, time, yt_dlp
+try:
+    ssl._create_default_https_context = ssl._create_unverified_context
+except Exception:
+    pass
 
 os.environ['NODE_TLS_REJECT_UNAUTHORIZED'] = '0'
+os.environ['PYTHONHTTPSVERIFY'] = '0'
+
+
 
 def get_ffmpeg():
     import imageio_ffmpeg, stat, shutil
@@ -150,7 +152,7 @@ def download_audio_pytubefix(song_name, output_dir='library'):
         raise Exception(f"Could not resolve YouTube URL for '{song_name}'")
     
     last_err = None
-    for client_name in ['MWEB', 'ANDROID']:
+    for client_name in ['MWEB', 'ANDROID', 'WEB', 'IOS']:
         try:
             print(f"[*] Pytubefix trying client='{client_name}' for: {direct_url}")
             yt = YouTube(direct_url, client=client_name)
@@ -171,7 +173,7 @@ def download_audio_pytubefix(song_name, output_dir='library'):
         except Exception as e:
             print(f"[!] pytubefix client '{client_name}' failed:", e)
             last_err = e
-            time.sleep(1.5)
+            time.sleep(0.5)
 
     raise Exception(f"Pytubefix clients failed: {str(last_err)}")
 
@@ -359,7 +361,18 @@ def download_audio(song_name):
         print(f"[!] Saavn timed out or failed: {err1}")
         err_messages.append("SaavnTimeout")
 
-    # 3. Try yt-dlp fallback
+    # 3. Try iTunes Track Search Fallback
+    try:
+        print(f"[*] Trying iTunes Track Fallback for: '{song_name}'...")
+        res = download_audio_itunes(song_name, output_dir)
+        if res and os.path.exists(res.get("mp3", "")):
+            res["source"] = "iTunes HD Track"
+            return res
+    except Exception as err_itunes:
+        print(f"[!] iTunes fallback error: {err_itunes}")
+        err_messages.append("iTunesFallbackError")
+
+    # 4. Try yt-dlp fallback
     executor2 = concurrent.futures.ThreadPoolExecutor(max_workers=1)
     def yt_fallback():
         yt_url = resolve_youtube_url(song_name)
