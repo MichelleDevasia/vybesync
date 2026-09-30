@@ -59,8 +59,8 @@ def resolve_youtube_url(query):
             'quiet': True,
             'nocheckcertificate': True,
             'legacy_server_connect': True,
-            'socket_timeout': 3,
-            'retries': 0,
+            'socket_timeout': 15,
+            'retries': 2,
             'extract_flat': True,
             'extractor_args': {'youtube': {'player_client': ['tv', 'android_vr', 'web_embedded', 'mweb', 'android', 'web']}}
         }
@@ -197,9 +197,9 @@ def download_audio_ytdlp(song_name, output_dir='library'):
         'no_warnings': True,
         'nocheckcertificate': True,
         'legacy_server_connect': True,
-        'socket_timeout': 3,
-        'retries': 0,
-        'fragment_retries': 0,
+        'socket_timeout': 30,
+        'retries': 3,
+        'fragment_retries': 3,
         'extractor_args': {'youtube': {'player_client': ['tv', 'android_vr', 'web_embedded', 'mweb', 'android', 'web']}},
         'outtmpl': os.path.join(output_dir, 'download_raw.%(ext)s'),
         'noplaylist': True,
@@ -383,7 +383,7 @@ def download_audio(song_name):
     future_yt = executor2.submit(yt_fallback)
     try:
         print(f"[*] Trying YouTube yt-dlp Fallback for: '{song_name}'...")
-        res = future_yt.result(timeout=15.0)
+        res = future_yt.result(timeout=30.0)
         res["source"] = "YouTube Fallback"
         return res
     except Exception as err2:
