@@ -167,7 +167,7 @@ def download_audio_pytubefix(song_name, output_dir='library'):
         raise Exception(f"Could not resolve YouTube URL for '{song_name}'")
     
     last_err = None
-    for client_name in ['WEB', 'WEB_SAFARI', 'TV_SIMPLY', 'MWEB', 'ANDROID', 'IOS']:
+    for client_name in ['ANDROID_VR', 'TV_SIMPLY', 'WEB_SAFARI', 'WEB', 'IOS', 'VISION_OS']:
         try:
             print(f"[*] Pytubefix trying client='{client_name}' for: {direct_url}")
             yt = YouTube(direct_url, client=client_name)
@@ -211,16 +211,25 @@ def download_audio_ytdlp(song_name, output_dir='library'):
         except Exception: pass
 
     ydl_opts = {
-        'format': '18/best/bestaudio/b',
+        'format': 'bestaudio/best',
         'ffmpeg_location': os.path.dirname(ffmpeg_exe),
         'ignoreerrors': False,
         'no_warnings': True,
         'nocheckcertificate': True,
         'legacy_server_connect': True,
         'socket_timeout': 30,
-        'retries': 3,
-        'fragment_retries': 3,
-        'extractor_args': {'youtube': {'player_client': ['tv', 'android_vr', 'web_embedded', 'mweb', 'android', 'web']}},
+        'retries': 5,
+        'fragment_retries': 5,
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['android_vr', 'tv', 'web_embedded'],
+                'player_skip': ['web', 'mweb']
+            }
+        },
+        'http_headers': {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+            'Accept-Language': 'en-us,en;q=0.5'
+        },
         'outtmpl': os.path.join(output_dir, 'download_raw.%(ext)s'),
         'noplaylist': True,
         'quiet': True,
@@ -403,7 +412,4 @@ def download_audio(song_name):
         print(f"[!] YouTube fallback error: {err2}")
         err_messages.append("YouTubeFallbackError")
 
-    print(f"[*] Fallback to instant audio engine for: '{song_name}'...")
-    res = create_instant_audio(song_name, "VibeSync Studio", output_dir)
-    res["source"] = f"VibeSync Fast Engine [{'; '.join(err_messages)}]"
-    return res
+    raise RuntimeError(f"Could not extract audio for '{song_name}': {'; '.join(err_messages)}")
