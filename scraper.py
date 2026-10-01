@@ -253,7 +253,7 @@ def download_audio_ytdlp(song_name, output_dir='library'):
     raise Exception("yt-dlp could not produce WAV file")
 
 def download_audio_saavn(song_name, output_dir='library'):
-    import urllib.parse, requests, imageio_ffmpeg, subprocess
+    import urllib.parse, requests
     query_encoded = urllib.parse.quote(song_name)
     url = f"https://saavn-api.vercel.app/search/songs?query={query_encoded}"
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
@@ -315,8 +315,11 @@ def download_audio(song_name):
     matching_candidates = []
     for pf in possible_files:
         basename = os.path.basename(pf)
-        # Skip output files or small temp files
-        if "test_full" in basename or "accompaniment" in basename or "vocals" in basename:
+        # Skip output files, small temp files, or files under 2MB
+        if "test_full" in basename or "accompaniment" in basename or "vocals" in basename or "download_raw" in basename:
+            continue
+        # MUST be a full-length file (> 2MB)
+        if os.path.getsize(pf) < 2000000:
             continue
         name_clean = clean_title(os.path.splitext(basename)[0]).lower().replace("_", "").replace(" ", "")
         if query_clean and (query_clean in name_clean or name_clean in query_clean):
