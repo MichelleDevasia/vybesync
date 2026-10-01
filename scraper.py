@@ -44,7 +44,22 @@ def resolve_youtube_url(query):
     if query.startswith(('http://', 'https://')):
         return query
 
-    # Try pytubefix search first (often bypasses yt-dlp search IP blocks)
+    # 1. Fast Direct YouTube HTML Search (Bypasses API blocks & 403s on cloud IPs)
+    try:
+        query_encoded = urllib.parse.quote(query)
+        url = f"https://www.youtube.com/results?search_query={query_encoded}"
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'}
+        resp = requests.get(url, headers=headers, timeout=5, verify=False)
+        if resp.status_code == 200:
+            matches = re.findall(r'"videoId"\s*:\s*"([a-zA-Z0-9_\-]{11})"', resp.text)
+            if matches:
+                v_url = f"https://www.youtube.com/watch?v={matches[0]}"
+                print(f"[+] Direct HTML search found YouTube URL: {v_url}")
+                return v_url
+    except Exception as e:
+        print("[!] Direct HTML YouTube search error:", e)
+
+    # 2. Try pytubefix search fallback
     try:
         from pytubefix import Search
         s = Search(query)
@@ -157,19 +172,24 @@ def download_audio_pytubefix(song_name, output_dir='library'):
             print(f"[*] Pytubefix trying client='{client_name}' for: {direct_url}")
             yt = YouTube(direct_url, client=client_name)
             simple_name = clean_title(yt.title)
-            ys = yt.streams.filter(only_audio=True).first()
-            if not ys:
-                ys = yt.streams.get_audio_only()
-            if ys:
-                target_mp3 = os.path.join(output_dir, f"{simple_name}.mp3")
-                downloaded_file = ys.download(output_path=output_dir, filename=f"{simple_name}_raw")
-                if os.path.exists(downloaded_file):
-                    os.replace(downloaded_file, target_mp3)
-                    return {
-                        "mp3": target_mp3,
-                        "title": simple_name,
-                        "artist": getattr(yt, 'author', 'Unknown').replace("- Topic", "").strip()
-                    }
+            audio_streams = yt.streams.filter(only_audio=True)
+            if not audio_streams:
+                audio_streams = [yt.streams.get_audio_only()]
+                
+            for ys in audio_streams:
+                if not ys: continue
+                try:
+                    target_mp3 = os.path.join(output_dir, f"{simple_name}.mp3")
+                    downloaded_file = ys.download(output_path=output_dir, filename=f"{simple_name}_raw")
+                    if os.path.exists(downloaded_file) and os.path.getsize(downloaded_file) > 500000:
+                        os.replace(downloaded_file, target_mp3)
+                        return {
+                            "mp3": target_mp3,
+                            "title": simple_name,
+                            "artist": getattr(yt, 'author', 'Unknown').replace("- Topic", "").strip()
+                        }
+                except Exception as stream_err:
+                    print(f"[!] Stream {ys.itag} download error: {stream_err}")
         except Exception as e:
             print(f"[!] pytubefix client '{client_name}' failed:", e)
             last_err = e
