@@ -361,18 +361,8 @@ def download_audio(song_name):
         print(f"[!] Saavn timed out or failed: {err1}")
         err_messages.append("SaavnTimeout")
 
-    # 3. Try iTunes Track Search Fallback
-    try:
-        print(f"[*] Trying iTunes Track Fallback for: '{song_name}'...")
-        res = download_audio_itunes(song_name, output_dir)
-        if res and os.path.exists(res.get("mp3", "")):
-            res["source"] = "iTunes HD Track"
-            return res
-    except Exception as err_itunes:
-        print(f"[!] iTunes fallback error: {err_itunes}")
-        err_messages.append("iTunesFallbackError")
-
-    # 4. Try yt-dlp fallback
+    # 3. Try YouTube yt-dlp Fallback (Full-Length Audio)
+    import concurrent.futures
     executor2 = concurrent.futures.ThreadPoolExecutor(max_workers=1)
     def yt_fallback():
         yt_url = resolve_youtube_url(song_name)
