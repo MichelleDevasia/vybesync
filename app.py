@@ -67,9 +67,19 @@ def serve_index():
     resp.headers['X-App-Version'] = 'v11_deploy_check'
     return resp
 
-@app.route('/<path:path>')
-def serve_static(path):
-    return send_from_directory('frontend', path)
+from flask import request, jsonify
+
+@app.errorhandler(404)
+def not_found_error(e):
+    if request.path.startswith('/api'):
+        return jsonify({"message": "API endpoint not found"}), 404
+    return send_from_directory('frontend', 'index.html')
+
+@app.errorhandler(500)
+def internal_error(e):
+    if request.path.startswith('/api'):
+        return jsonify({"message": f"Internal server error: {str(e)}"}), 500
+    return send_from_directory('frontend', 'index.html')
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
