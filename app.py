@@ -26,7 +26,17 @@ from models.song import Song
 app = Flask(__name__, static_folder='frontend')
 app.config.from_object(Config)
 
-CORS(app)  # Support cross-origin queries (important for Vercel/Render decoupling)
+CORS(app, resources={r"/*": {"origins": "*"}}, allow_headers=["Content-Type", "Authorization", "X-Requested-With"], methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
+
+@app.before_request
+def handle_options_preflight():
+    from flask import request
+    if request.method == 'OPTIONS':
+        response = app.make_default_options_response()
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With'
+        response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+        return response
 
 db.init_app(app)
 

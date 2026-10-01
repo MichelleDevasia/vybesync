@@ -2,6 +2,25 @@ const API_BASE = (window.location.hostname.includes('localhost') || window.locat
     ? window.location.origin
     : 'https://vybesync-backend-a7yi.onrender.com';
 
+async function fetchWithRetry(url, options = {}, maxRetries = 3, delay = 2500) {
+    let lastErr;
+    for (let i = 0; i < maxRetries; i++) {
+        try {
+            const res = await fetch(url, options);
+            return res;
+        } catch (err) {
+            lastErr = err;
+            if (i < maxRetries - 1) {
+                if (typeof showToast === 'function') {
+                    showToast(`Waking up server... Retrying (${i + 1}/${maxRetries})...`, 'process');
+                }
+                await new Promise(r => setTimeout(r, delay));
+            }
+        }
+    }
+    throw lastErr;
+}
+
 // Session & Platform State
 let token = localStorage.getItem('auth_token') || null;
 let currentUser = null;
@@ -173,7 +192,7 @@ function setupAuthListeners() {
 
         showToast('Authenticating with studio...', 'process');
         try {
-            const res = await fetch(`${API_BASE}/api/auth/login`, {
+            const res = await fetchWithRetry(`${API_BASE}/api/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password })
@@ -198,7 +217,7 @@ function setupAuthListeners() {
 
         showToast('Creating profile...', 'process');
         try {
-            const res = await fetch(`${API_BASE}/api/auth/register`, {
+            const res = await fetchWithRetry(`${API_BASE}/api/auth/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name, email, password })
