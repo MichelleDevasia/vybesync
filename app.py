@@ -49,6 +49,10 @@ with app.app_context():
         print(f"[!] Primary DB connection error: {db_err}")
         print("[*] Falling back to local SQLite database...")
         app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///karaoke_studio.db'
+        app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+            "pool_pre_ping": True,
+            "pool_recycle": 300
+        }
         try:
             if 'sqlalchemy' in app.extensions:
                 try:

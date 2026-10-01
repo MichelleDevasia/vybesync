@@ -1,13 +1,19 @@
 {
   "version": 2,
-  "rewrites": [
+  "builds": [
     {
-      "source": "/api/:path*",
-      "destination": "https://vybesync-backend-a7yi.onrender.com/api/:path*"
+      "src": "frontend/**",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "https://vybesync-backend-a7yi.onrender.com/api/$1"
     },
     {
-      "source": "/:path*",
-      "destination": "/frontend/:path*"
+      "src": "/(.*)",
+      "dest": "/frontend/$1"
     }
   ]
 }
