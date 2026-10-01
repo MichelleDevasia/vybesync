@@ -152,7 +152,7 @@ def download_audio_pytubefix(song_name, output_dir='library'):
         raise Exception(f"Could not resolve YouTube URL for '{song_name}'")
     
     last_err = None
-    for client_name in ['MWEB', 'ANDROID', 'WEB', 'IOS']:
+    for client_name in ['WEB', 'WEB_SAFARI', 'TV_SIMPLY', 'MWEB', 'ANDROID', 'IOS']:
         try:
             print(f"[*] Pytubefix trying client='{client_name}' for: {direct_url}")
             yt = YouTube(direct_url, client=client_name)
