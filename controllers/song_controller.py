@@ -14,7 +14,7 @@ ASYNC_TASKS = {}
 class SongController:
     @staticmethod
     def test_version():
-        return jsonify({"version": "v11_loop_pitch_fix"}), 200
+        return jsonify({"version": "v12_rapidapi_ddg_fix"}), 200
 
     @staticmethod
     def get_task_status(task_id):
