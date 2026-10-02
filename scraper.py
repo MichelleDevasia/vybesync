@@ -223,7 +223,7 @@ def download_audio_rapidapi(song_name, output_dir='library'):
                 'x-rapidapi-host': host
             }
             print(f"[*] Calling RapidAPI downloader ({host}) for video ID: {video_id}...")
-            resp = requests.get(ep_url, headers=headers, params=params, timeout=25)
+            resp = requests.get(ep_url, headers=headers, params=params, timeout=25, verify=False)
             if resp.status_code == 200:
                 data = resp.json()
                 dl_link = data.get('link') or data.get('downloadUrl') or data.get('url') or data.get('download_url')
@@ -231,7 +231,7 @@ def download_audio_rapidapi(song_name, output_dir='library'):
                 if dl_link and dl_link.startswith(('http://', 'https://')):
                     print(f"[+] RapidAPI returned download stream URL. Fetching audio...")
                     target_mp3 = os.path.join(output_dir, f"{title}.mp3")
-                    r_audio = requests.get(dl_link, headers={'User-Agent': 'Mozilla/5.0'}, timeout=45, stream=True)
+                    r_audio = requests.get(dl_link, headers={'User-Agent': 'Mozilla/5.0'}, timeout=45, stream=True, verify=False)
                     if r_audio.status_code == 200:
                         with open(target_mp3, 'wb') as f:
                             for chunk in r_audio.iter_content(chunk_size=1024 * 64):
