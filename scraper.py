@@ -197,6 +197,60 @@ def download_audio_pytubefix(song_name, output_dir='library'):
 
     raise Exception(f"Pytubefix clients failed: {str(last_err)}")
 
+def download_audio_rapidapi(song_name, output_dir='library'):
+    from config import Config
+    api_key = getattr(Config, 'RAPIDAPI_KEY', '') or os.getenv('RAPIDAPI_KEY', '')
+    if not api_key:
+        return None
+
+    target_url = resolve_youtube_url(song_name)
+    match = re.search(r'(?:v=|\/|youtu\.be\/)([a-zA-Z0-9_\-]{11})', target_url)
+    video_id = match.group(1) if match else None
+    if not video_id:
+        raise Exception(f"Could not extract YouTube video ID for '{song_name}'")
+
+    configured_host = getattr(Config, 'RAPIDAPI_HOST', 'youtube-mp36.p.rapidapi.com')
+    endpoints = [
+        ("https://youtube-mp36.p.rapidapi.com/dl", {"id": video_id}, "youtube-mp36.p.rapidapi.com"),
+        ("https://youtube-mp310.p.rapidapi.com/download/mp3", {"url": f"https://www.youtube.com/watch?v={video_id}"}, "youtube-mp310.p.rapidapi.com"),
+        (f"https://{configured_host}/dl", {"id": video_id}, configured_host)
+    ]
+
+    for ep_url, params, host in endpoints:
+        try:
+            headers = {
+                'x-rapidapi-key': api_key,
+                'x-rapidapi-host': host
+            }
+            print(f"[*] Calling RapidAPI downloader ({host}) for video ID: {video_id}...")
+            resp = requests.get(ep_url, headers=headers, params=params, timeout=25)
+            if resp.status_code == 200:
+                data = resp.json()
+                dl_link = data.get('link') or data.get('downloadUrl') or data.get('url') or data.get('download_url')
+                title = clean_title(data.get('title') or song_name)
+                if dl_link and dl_link.startswith(('http://', 'https://')):
+                    print(f"[+] RapidAPI returned download stream URL. Fetching audio...")
+                    target_mp3 = os.path.join(output_dir, f"{title}.mp3")
+                    r_audio = requests.get(dl_link, headers={'User-Agent': 'Mozilla/5.0'}, timeout=45, stream=True)
+                    if r_audio.status_code == 200:
+                        with open(target_mp3, 'wb') as f:
+                            for chunk in r_audio.iter_content(chunk_size=1024 * 64):
+                                if chunk: f.write(chunk)
+                        if os.path.exists(target_mp3) and os.path.getsize(target_mp3) > 100000:
+                            print(f"[+] RapidAPI successfully downloaded audio ({os.path.getsize(target_mp3)} bytes): {target_mp3}")
+                            return {
+                                "mp3": target_mp3,
+                                "title": title,
+                                "artist": data.get('artist') or "YouTube Official Audio",
+                                "source": f"RapidAPI ({host})"
+                            }
+            else:
+                print(f"[!] RapidAPI host {host} returned HTTP {resp.status_code}: {resp.text[:120]}")
+        except Exception as e:
+            print(f"[!] RapidAPI host {host} error: {e}")
+
+    raise Exception("RapidAPI conversion failed or timed out")
+
 def download_audio_ytdlp(song_name, output_dir='library'):
     import imageio_ffmpeg, subprocess, glob
     ffmpeg_exe = get_ffmpeg()
@@ -222,8 +276,7 @@ def download_audio_ytdlp(song_name, output_dir='library'):
         'fragment_retries': 5,
         'extractor_args': {
             'youtube': {
-                'player_client': ['android_vr', 'tv', 'web_embedded'],
-                'player_skip': ['web', 'mweb']
+                'player_client': ['web_embedded', 'android', 'ios', 'tv', 'web', 'mweb']
             }
         },
         'http_headers': {
@@ -361,6 +414,19 @@ def download_audio(song_name):
 
     err_messages = []
 
+    # 0. Try RapidAPI if configured (Bypasses cloud datacenter IP blocks 100%)
+    try:
+        from config import Config
+        api_key = getattr(Config, 'RAPIDAPI_KEY', '') or os.getenv('RAPIDAPI_KEY', '')
+        if api_key:
+            print(f"[*] RapidAPI key detected, attempting high-speed cloud API download for '{song_name}'...")
+            res = download_audio_rapidapi(song_name, output_dir)
+            if res:
+                return res
+    except Exception as err_api:
+        print(f"[!] RapidAPI error: {err_api}")
+        err_messages.append(f"RapidAPI ({str(err_api)[:40]})")
+
     if song_name.startswith(('http://', 'https://')):
         try:
             print(f"[*] Direct YouTube URL detected: '{song_name}'...")
@@ -412,4 +478,7 @@ def download_audio(song_name):
         print(f"[!] YouTube fallback error: {err2}")
         err_messages.append("YouTubeFallbackError")
 
-    raise RuntimeError(f"Could not extract audio for '{song_name}': {'; '.join(err_messages)}")
+    from config import Config
+    has_api_key = bool(getattr(Config, 'RAPIDAPI_KEY', '') or os.getenv('RAPIDAPI_KEY', ''))
+    hint = "" if has_api_key else " Tip: You can drag & drop the song file directly using the 'Upload Song File' tab in the Studio Deck to bypass YouTube blocks, or set RAPIDAPI_KEY."
+    raise RuntimeError(f"Could not extract audio for '{song_name}': {'; '.join(err_messages)}.{hint}")
