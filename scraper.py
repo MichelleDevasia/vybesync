@@ -44,7 +44,37 @@ def resolve_youtube_url(query):
     if query.startswith(('http://', 'https://')):
         return query
 
-    # 1. Fast Direct YouTube HTML Search (Bypasses API blocks & 403s on cloud IPs)
+    # 1. DuckDuckGo HTML Search (100% immune to cloud datacenter IP blocks)
+    try:
+        query_encoded = urllib.parse.quote(query + ' youtube')
+        ddg_url = f"https://html.duckduckgo.com/html/?q={query_encoded}"
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'}
+        resp = requests.get(ddg_url, headers=headers, timeout=6, verify=False)
+        if resp.status_code == 200:
+            matches = re.findall(r'youtube\.com/watch\?v=([a-zA-Z0-9_\-]{11})', resp.text)
+            if matches:
+                v_url = f"https://www.youtube.com/watch?v={matches[0]}"
+                print(f"[+] DuckDuckGo resolved YouTube URL for '{query}': {v_url}")
+                return v_url
+    except Exception as e:
+        print("[!] DuckDuckGo search error:", e)
+
+    # 2. Bing HTML Search
+    try:
+        query_encoded = urllib.parse.quote(query + ' youtube')
+        bing_url = f"https://www.bing.com/search?q={query_encoded}"
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+        resp = requests.get(bing_url, headers=headers, timeout=6, verify=False)
+        if resp.status_code == 200:
+            matches = re.findall(r'youtube\.com/watch\?v=([a-zA-Z0-9_\-]{11})', resp.text)
+            if matches:
+                v_url = f"https://www.youtube.com/watch?v={matches[0]}"
+                print(f"[+] Bing resolved YouTube URL for '{query}': {v_url}")
+                return v_url
+    except Exception as e:
+        print("[!] Bing search error:", e)
+
+    # 3. Direct YouTube HTML Search
     try:
         query_encoded = urllib.parse.quote(query)
         url = f"https://www.youtube.com/results?search_query={query_encoded}"
@@ -59,7 +89,7 @@ def resolve_youtube_url(query):
     except Exception as e:
         print("[!] Direct HTML YouTube search error:", e)
 
-    # 2. Try pytubefix search fallback
+    # 4. Try pytubefix search fallback
     try:
         from pytubefix import Search
         s = Search(query)
