@@ -713,6 +713,133 @@ body.light-theme .auth-overlay {
     gap: 14px;
 }
 
+.deck-mode-tabs {
+    display: flex;
+    gap: 6px;
+    background: var(--input-bg);
+    padding: 4px;
+    border-radius: 14px;
+    border: 1px solid var(--border-color);
+}
+
+.deck-tab {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 12px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.25s ease;
+}
+
+.deck-tab:hover {
+    color: var(--text-main);
+}
+
+.deck-tab.active {
+    background: var(--card-matte);
+    color: var(--text-main);
+    border-color: var(--border-color);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.upload-dropzone {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--input-bg);
+    border: 2px dashed var(--border-color);
+    border-radius: 16px;
+    padding: 16px 18px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    user-select: none;
+}
+
+.upload-dropzone:hover, .upload-dropzone.dragover {
+    border-color: var(--primary);
+    background: rgba(139, 106, 78, 0.12);
+    transform: translateY(-1px);
+}
+
+.upload-dropzone.has-file {
+    border-style: solid;
+    border-color: var(--primary);
+    background: rgba(139, 106, 78, 0.15);
+}
+
+.dropzone-icon-circle {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: rgba(139, 106, 78, 0.22);
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+    transition: transform 0.3s ease;
+}
+
+.upload-dropzone:hover .dropzone-icon-circle {
+    transform: scale(1.08);
+}
+
+.dropzone-text-group {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    flex: 1;
+    text-align: left;
+}
+
+.dropzone-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-main);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.dropzone-subtitle {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+.dropzone-browse-badge {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 6px 12px;
+    border-radius: 8px;
+    background: var(--card-matte);
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+}
+
+.upload-dropzone:hover .dropzone-browse-badge {
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.deck-panel {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
 .input-console input {
     background: var(--input-bg);
     border: 1px solid var(--border-color);

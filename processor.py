@@ -61,29 +61,10 @@ def fast_dsp_vocal_remover(input_file_path, output_base_folder="karaoke_output")
             print("[+] FFmpeg DSP phase cancellation succeeded!")
             return True
         else:
-            print("[!] FFmpeg output file size check failed (0-byte or corrupted output). Falling back...")
+            print("[!] FFmpeg output file size check failed (0-byte or corrupted output).")
+            return False
     except Exception as e:
-        print(f"[!] FFmpeg DSP error: {e}. Generating WAV stems...")
-
-    # Standard WAV generator fallback (creates 15s clean harmony audio)
-    try:
-        import wave, struct, math
-        for p, freq in [(inst_path, 440), (vocal_path, 554)]:
-            fw = wave.open(p, 'w')
-            fw.setnchannels(2)
-            fw.setsampwidth(2)
-            fw.setframerate(44100)
-            frames = []
-            for i in range(44100 * 15):
-                t = i / 44100.0
-                val = int(16000 * math.sin(2 * math.pi * freq * t))
-                frames.append(struct.pack('<hh', val, val))
-            fw.writeframes(b''.join(frames))
-            fw.close()
-        print("[+] WAV stems generated successfully!")
-        return True
-    except Exception as e2:
-        print(f"[!] Stem error: {e2}")
+        print(f"[!] FFmpeg DSP error: {e}")
         return False
 
 def separate_vocals(input_file_path):

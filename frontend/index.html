@@ -214,7 +214,34 @@
 
                             <!-- Input Console -->
                             <div class="input-console">
-                                <input type="text" id="song-input" placeholder="Enter Song Name or YouTube Link...">
+                                <div class="deck-mode-tabs">
+                                    <button type="button" class="deck-tab active" id="deck-tab-upload">
+                                        <i class="fa-solid fa-cloud-arrow-up"></i> Upload Song File
+                                    </button>
+                                    <button type="button" class="deck-tab" id="deck-tab-search">
+                                        <i class="fa-solid fa-magnifying-glass"></i> Search Track / URL
+                                    </button>
+                                </div>
+
+                                <!-- Panel: Direct File Upload -->
+                                <div class="deck-panel" id="deck-panel-upload">
+                                    <input type="file" id="song-file-input" accept=".mp3,.wav,.m4a,.mp4,.flac,.ogg,.aac" style="display: none;">
+                                    <div class="upload-dropzone" id="upload-dropzone">
+                                        <div class="dropzone-icon-circle">
+                                            <i class="fa-solid fa-file-audio"></i>
+                                        </div>
+                                        <div class="dropzone-text-group">
+                                            <span class="dropzone-title" id="dropzone-file-name">Click or drag & drop audio file</span>
+                                            <span class="dropzone-subtitle" id="dropzone-file-info">MP3, WAV, M4A, MP4 &bull; 100% full quality</span>
+                                        </div>
+                                        <span class="dropzone-browse-badge" id="dropzone-action-badge">Browse File</span>
+                                    </div>
+                                </div>
+
+                                <!-- Panel: Search Query / YouTube Link -->
+                                <div class="deck-panel" id="deck-panel-search" style="display: none;">
+                                    <input type="text" id="song-input" placeholder="Enter Song Name or YouTube Link...">
+                                </div>
                                 
                                 <div class="generator-options">
                                     <input type="text" id="song-playlist-input" placeholder="Playlist (Optional)...">

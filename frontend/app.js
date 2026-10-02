@@ -71,7 +71,20 @@ const screens = document.querySelectorAll('.screen');
 const navItems = document.querySelectorAll('.nav-item');
 
 // DOM Element Selectors
+let currentDeckMode = 'upload'; // 'upload' or 'search'
+let selectedAudioFile = null;
+
 const songInput = document.getElementById('song-input');
+const deckTabUpload = document.getElementById('deck-tab-upload');
+const deckTabSearch = document.getElementById('deck-tab-search');
+const deckPanelUpload = document.getElementById('deck-panel-upload');
+const deckPanelSearch = document.getElementById('deck-panel-search');
+const songFileInput = document.getElementById('song-file-input');
+const uploadDropzone = document.getElementById('upload-dropzone');
+const dropzoneFileName = document.getElementById('dropzone-file-name');
+const dropzoneFileInfo = document.getElementById('dropzone-file-info');
+const dropzoneActionBadge = document.getElementById('dropzone-action-badge');
+
 const cassetteTape = document.getElementById('cassette-tape');
 const processingOverlay = document.getElementById('processing-overlay');
 const progressFill = document.getElementById('progress-fill');
@@ -317,6 +330,40 @@ function setupEventListeners() {
             eCd.style.opacity = '';
         }, 1100);
     });
+
+    // Deck Mode Switcher Tabs
+    if (deckTabUpload && deckTabSearch) {
+        deckTabUpload.addEventListener('click', () => switchDeckMode('upload'));
+        deckTabSearch.addEventListener('click', () => switchDeckMode('search'));
+    }
+
+    // Direct Audio File Upload Dropzone
+    if (uploadDropzone && songFileInput) {
+        uploadDropzone.addEventListener('click', () => songFileInput.click());
+
+        songFileInput.addEventListener('change', (e) => {
+            if (e.target.files && e.target.files[0]) {
+                handleSelectedFile(e.target.files[0]);
+            }
+        });
+
+        uploadDropzone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadDropzone.classList.add('dragover');
+        });
+
+        uploadDropzone.addEventListener('dragleave', () => {
+            uploadDropzone.classList.remove('dragover');
+        });
+
+        uploadDropzone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadDropzone.classList.remove('dragover');
+            if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                handleSelectedFile(e.dataTransfer.files[0]);
+            }
+        });
+    }
 
     document.getElementById('generate-btn').addEventListener('click', startGeneration);
     document.getElementById('player-back-btn').addEventListener('click', () => {
@@ -719,13 +766,59 @@ async function purgeSong(id) {
     }
 }
 
+function switchDeckMode(mode) {
+    currentDeckMode = mode;
+    if (mode === 'upload') {
+        if (deckTabUpload) deckTabUpload.classList.add('active');
+        if (deckTabSearch) deckTabSearch.classList.remove('active');
+        if (deckPanelUpload) deckPanelUpload.style.display = 'flex';
+        if (deckPanelSearch) deckPanelSearch.style.display = 'none';
+    } else {
+        if (deckTabSearch) deckTabSearch.classList.add('active');
+        if (deckTabUpload) deckTabUpload.classList.remove('active');
+        if (deckPanelSearch) deckPanelSearch.style.display = 'flex';
+        if (deckPanelUpload) deckPanelUpload.style.display = 'none';
+    }
+}
+
+function handleSelectedFile(file) {
+    if (!file) return;
+    selectedAudioFile = file;
+    if (uploadDropzone) uploadDropzone.classList.add('has-file');
+    if (dropzoneFileName) dropzoneFileName.innerText = file.name;
+    const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
+    if (dropzoneFileInfo) dropzoneFileInfo.innerText = `${sizeMb} MB • Ready for Vocal Separation`;
+    if (dropzoneActionBadge) dropzoneActionBadge.innerText = 'Change';
+    showToast(`Loaded "${file.name}" (${sizeMb} MB)`, 'info');
+}
+
+function resetDropzoneUI() {
+    selectedAudioFile = null;
+    if (songFileInput) songFileInput.value = '';
+    if (uploadDropzone) uploadDropzone.classList.remove('has-file');
+    if (dropzoneFileName) dropzoneFileName.innerText = 'Click or drag & drop audio file';
+    if (dropzoneFileInfo) dropzoneFileInfo.innerText = 'MP3, WAV, M4A, MP4 • 100% full quality';
+    if (dropzoneActionBadge) dropzoneActionBadge.innerText = 'Browse File';
+}
+
 // Generate execution
 async function startGeneration() {
-    const inputVal = songInput.value.trim();
     const playlistVal = document.getElementById('song-playlist-input').value.trim();
     const tagsVal = document.getElementById('song-tags-input').value.trim();
-    
-    if (!inputVal) return;
+    const isUpload = (currentDeckMode === 'upload');
+    const inputVal = songInput ? songInput.value.trim() : '';
+
+    if (isUpload) {
+        if (!selectedAudioFile) {
+            showToast('Please select or drop an audio file first.', 'error');
+            return;
+        }
+    } else {
+        if (!inputVal) {
+            showToast('Please enter a song name or YouTube link.', 'error');
+            return;
+        }
+    }
 
     cassetteTape.classList.add('inserted');
     showToast('Starting stem separation processor...', 'process');
@@ -743,31 +836,50 @@ async function startGeneration() {
         }, 800);
 
         try {
-            let response = await fetch(`${API_BASE}/api/process`, {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({ 
-                    query: inputVal,
-                    playlist: playlistVal || null,
-                    tags: tagsVal || null
-                })
-            });
+            let response;
+            if (isUpload) {
+                loadingStatus.innerText = 'UPLOADING AUDIO FILE...';
+                const formData = new FormData();
+                formData.append('file', selectedAudioFile);
+                if (playlistVal) formData.append('playlist', playlistVal);
+                if (tagsVal) formData.append('tags', tagsVal);
+                
+                response = await fetch(`${API_BASE}/api/process`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+            } else {
+                loadingStatus.innerText = 'RESOLVING AUDIO TRACK...';
+                response = await fetch(`${API_BASE}/api/process`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ 
+                        query: inputVal,
+                        playlist: playlistVal || null,
+                        tags: tagsVal || null
+                    })
+                });
+            }
+
             let data = await response.json();
             
             // Polling for async background processing
             const taskId = data.task_id;
             if (!taskId) {
-                showToast('Separation failed: Invalid response from server.', 'error');
+                showToast('Separation failed: ' + (data.message || 'Invalid response from server.'), 'error');
                 resetGeneratorState();
                 clearInterval(progressTimer);
                 return;
             }
             
             while (response.status === 202) {
-                loadingStatus.innerText = 'PROCESSING AUDIO (This may take a minute)...';
+                loadingStatus.innerText = 'SEPARATING VOCALS & INSTRUMENTS...';
                 await new Promise(r => setTimeout(r, 2000));
                 response = await fetch(`${API_BASE}/api/status/${taskId}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
@@ -786,7 +898,8 @@ async function startGeneration() {
                 setTimeout(() => {
                     processingOverlay.classList.remove('active');
                     cassetteTape.classList.remove('spinning', 'inserted');
-                    songInput.value = '';
+                    if (songInput) songInput.value = '';
+                    resetDropzoneUI();
                     document.getElementById('song-playlist-input').value = '';
                     document.getElementById('song-tags-input').value = '';
                     progressFill.style.width = '0%';

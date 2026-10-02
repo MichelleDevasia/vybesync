@@ -67,13 +67,95 @@ class SongController:
 
     @staticmethod
     def process_song(current_user):
-        data = request.get_json() or {}
-        query = data.get('query')
-        playlist_name = data.get('playlist')
-        tags_str = data.get('tags')
+        uploaded_file = request.files.get('file')
+        if uploaded_file and uploaded_file.filename:
+            from werkzeug.utils import secure_filename
+            orig_name = uploaded_file.filename
+            safe_name = secure_filename(orig_name)
+            if not safe_name:
+                safe_name = f"upload_{uuid.uuid4().hex[:8]}.mp3"
+            
+            allowed_extensions = {'.mp3', '.wav', '.m4a', '.mp4', '.flac', '.ogg', '.aac', '.wma'}
+            ext = os.path.splitext(safe_name)[1].lower()
+            if ext not in allowed_extensions:
+                return jsonify({"message": f"Unsupported audio format '{ext}'. Please upload MP3, WAV, M4A, or MP4."}), 400
+                
+            upload_dir = 'library'
+            os.makedirs(upload_dir, exist_ok=True)
+            saved_path = os.path.join(upload_dir, f"up_{uuid.uuid4().hex[:8]}_{safe_name}")
+            uploaded_file.save(saved_path)
+            
+            playlist_name = request.form.get('playlist')
+            tags_str = request.form.get('tags')
+            custom_title = request.form.get('title')
+            
+            task_id = str(uuid.uuid4())
+            ASYNC_TASKS[task_id] = {"status": "processing"}
+            
+            def run_upload_processing():
+                try:
+                    res = ProcessingService.process_audio_file(
+                        saved_path,
+                        original_filename=orig_name,
+                        title=custom_title
+                    )
+                    
+                    from app import app
+                    with app.app_context():
+                        song = Song(
+                            user_id=current_user.id,
+                            title=res["title"],
+                            artist=res["artist"],
+                            composer=res["composer"],
+                            pitch=res["pitch"],
+                            source=res["source"],
+                            lyrics=res["lyrics"],
+                            playlist=playlist_name,
+                            tags=tags_str
+                        )
+                        db.session.add(song)
+                        db.session.commit()
+                        
+                        audio_url = StorageService.save_original(res["local_mp3"], song.id)
+                        karaoke_url = StorageService.save_instrumental(res["local_instrumental"], song.id)
+                        cover_url = StorageService.save_cover(res["local_cover"], song.id)
+                        
+                        if not audio_url or not karaoke_url:
+                            raise ValueError(f"Failed to copy generated stem files from {res['local_mp3']}")
+                            
+                        song.audio_file_url = audio_url
+                        song.karaoke_file_url = karaoke_url
+                        song.cover_image = cover_url
+                        db.session.commit()
+                        
+                        try:
+                            if os.path.exists(saved_path):
+                                os.remove(saved_path)
+                            shutil_dir = os.path.dirname(res["local_mp3"])
+                            if os.path.exists(shutil_dir):
+                                import shutil
+                                shutil.rmtree(shutil_dir)
+                        except Exception:
+                            pass
+                            
+                        ASYNC_TASKS[task_id] = {"status": "completed", "data": song.to_dict()}
+                except Exception as e:
+                    import traceback
+                    print(f"[!] Upload processing error: {e}")
+                    traceback.print_exc()
+                    ASYNC_TASKS[task_id] = {"status": "error", "error": str(e)}
+                    
+            t = threading.Thread(target=run_upload_processing)
+            t.start()
+            return jsonify({"status": "processing", "task_id": task_id}), 202
+
+        data = request.get_json(silent=True) or {}
+        query = data.get('query') or request.form.get('query')
+        playlist_name = data.get('playlist') or request.form.get('playlist')
+        tags_str = data.get('tags') or request.form.get('tags')
         
         if not query:
-            return jsonify({"message": "Query parameter missing."}), 400
+            return jsonify({"message": "Please upload an audio file or enter a song query."}), 400
 
         task_id = str(uuid.uuid4())
         ASYNC_TASKS[task_id] = {"status": "processing"}
