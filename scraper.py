@@ -210,46 +210,73 @@ def download_audio_rapidapi(song_name, output_dir='library'):
         raise Exception(f"Could not extract YouTube video ID for '{song_name}'")
 
     configured_host = getattr(Config, 'RAPIDAPI_HOST', 'youtube-mp36.p.rapidapi.com')
-    endpoints = [
-        ("https://youtube-mp36.p.rapidapi.com/dl", {"id": video_id}, "youtube-mp36.p.rapidapi.com"),
-        ("https://youtube-mp310.p.rapidapi.com/download/mp3", {"url": f"https://www.youtube.com/watch?v={video_id}"}, "youtube-mp310.p.rapidapi.com"),
-        (f"https://{configured_host}/dl", {"id": video_id}, configured_host)
-    ]
+    headers = {
+        'x-rapidapi-key': api_key,
+        'x-rapidapi-host': configured_host
+    }
 
-    for ep_url, params, host in endpoints:
+    print(f"[*] Calling RapidAPI downloader ({configured_host}) for video ID: {video_id}...")
+    
+    dl_link = None
+    title = clean_title(song_name)
+    artist = "YouTube Official Audio"
+
+    # Poll RapidAPI endpoint up to 10 times (20 seconds max) for conversion completion
+    for attempt in range(1, 11):
         try:
-            headers = {
-                'x-rapidapi-key': api_key,
-                'x-rapidapi-host': host
-            }
-            print(f"[*] Calling RapidAPI downloader ({host}) for video ID: {video_id}...")
-            resp = requests.get(ep_url, headers=headers, params=params, timeout=25, verify=False)
+            resp = requests.get("https://youtube-mp36.p.rapidapi.com/dl", headers=headers, params={"id": video_id}, timeout=15, verify=False)
             if resp.status_code == 200:
                 data = resp.json()
-                dl_link = data.get('link') or data.get('downloadUrl') or data.get('url') or data.get('download_url')
-                title = clean_title(data.get('title') or song_name)
+                status = data.get('status')
+                progress = data.get('progress')
+                dl_link = data.get('link') or data.get('downloadUrl') or data.get('url')
+                if data.get('title'):
+                    title = clean_title(data.get('title'))
+                
                 if dl_link and dl_link.startswith(('http://', 'https://')):
-                    print(f"[+] RapidAPI returned download stream URL. Fetching audio...")
-                    target_mp3 = os.path.join(output_dir, f"{title}.mp3")
-                    r_audio = requests.get(dl_link, headers={'User-Agent': 'Mozilla/5.0'}, timeout=45, stream=True, verify=False)
-                    if r_audio.status_code == 200:
-                        with open(target_mp3, 'wb') as f:
-                            for chunk in r_audio.iter_content(chunk_size=1024 * 64):
-                                if chunk: f.write(chunk)
-                        if os.path.exists(target_mp3) and os.path.getsize(target_mp3) > 100000:
-                            print(f"[+] RapidAPI successfully downloaded audio ({os.path.getsize(target_mp3)} bytes): {target_mp3}")
-                            return {
-                                "mp3": target_mp3,
-                                "title": title,
-                                "artist": data.get('artist') or "YouTube Official Audio",
-                                "source": f"RapidAPI ({host})"
-                            }
+                    print(f"[+] RapidAPI conversion complete on attempt {attempt}! Stream URL ready.")
+                    break
+                else:
+                    print(f"[*] RapidAPI status='{status}', progress={progress}%. Polling conversion (Attempt {attempt}/10)...")
+                    time.sleep(2)
             else:
-                print(f"[!] RapidAPI host {host} returned HTTP {resp.status_code}: {resp.text[:120]}")
-        except Exception as e:
-            print(f"[!] RapidAPI host {host} error: {e}")
+                print(f"[!] RapidAPI returned HTTP {resp.status_code}: {resp.text[:120]}")
+                time.sleep(2)
+        except Exception as poll_err:
+            print(f"[!] RapidAPI poll attempt {attempt} error: {poll_err}")
+            time.sleep(2)
 
-    raise Exception("RapidAPI conversion failed or timed out")
+    if not dl_link or not dl_link.startswith(('http://', 'https://')):
+        # Secondary endpoint fallback if user subscribed to youtube-mp310
+        try:
+            h2 = dict(headers)
+            h2['x-rapidapi-host'] = 'youtube-mp310.p.rapidapi.com'
+            r2 = requests.get("https://youtube-mp310.p.rapidapi.com/download/mp3", headers=h2, params={"url": f"https://www.youtube.com/watch?v={video_id}"}, timeout=20, verify=False)
+            if r2.status_code == 200:
+                data2 = r2.json()
+                dl_link = data2.get('downloadUrl') or data2.get('url') or data2.get('link')
+                if data2.get('title'): title = clean_title(data2.get('title'))
+        except Exception:
+            pass
+
+    if dl_link and dl_link.startswith(('http://', 'https://')):
+        print(f"[+] RapidAPI downloading track from CDN: {dl_link[:80]}...")
+        target_mp3 = os.path.join(output_dir, f"{title}.mp3")
+        r_audio = requests.get(dl_link, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}, timeout=60, stream=True, verify=False)
+        if r_audio.status_code == 200:
+            with open(target_mp3, 'wb') as f:
+                for chunk in r_audio.iter_content(chunk_size=1024 * 64):
+                    if chunk: f.write(chunk)
+            if os.path.exists(target_mp3) and os.path.getsize(target_mp3) > 100000:
+                print(f"[+] RapidAPI successfully downloaded audio ({os.path.getsize(target_mp3)} bytes): {target_mp3}")
+                return {
+                    "mp3": target_mp3,
+                    "title": title,
+                    "artist": artist,
+                    "source": f"RapidAPI ({configured_host})"
+                }
+
+    raise Exception("RapidAPI conversion timed out or link unavailable")
 
 def download_audio_ytdlp(song_name, output_dir='library'):
     import imageio_ffmpeg, subprocess, glob
